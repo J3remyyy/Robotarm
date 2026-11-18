@@ -1,0 +1,207 @@
+﻿Roboter-Achsen: Bewegung im Raum & Ansteuerung
+21. Okt. 2026 · @PrototypingLab
+Alle Roboter haben dieselbe Firmware und dieselbe Kalibrierung. Die Werte unten gelten daher für jeden Roboter. Die Gruppe (LED-Farbe 1–5) legt nur den Funkkanal fest, nicht die Bewegung. Alle Zahlen stammen aus src/receiver/main.cpp und lib/RobotLink/src/RobotLink.cpp.
+Koordinatensystem
+Der Ursprung liegt in der Basis-Drehachse auf Tischhöhe. Die Achsen sind so definiert:
+Achse
+Richtung
+Positiv =
+X
+vor / zurück
+nach vorne, vom Roboter weg
+Y
+links / rechts
+nach rechts (laut Doku, siehe Hinweise)
+Z
+hoch / runter
+nach oben
+Winkel im Arm sind so gemessen:
+• Arm-Ebene: Die Ebene, in der Schulter, Ellbogen und Handgelenk-Neigung drehen. Sie dreht mit der Basis mit.
+• 0° in der Arm-Ebene = waagerecht nach vorne. Positive Winkel zeigen nach oben.
+• Nullpose (Servo-Mitte 2048): Oberarm L1 senkrecht nach oben, Unterarm L2 waagerecht nach vorne, Werkzeug L3 in Verlängerung von L2.
+• Gliedlängen: L1 (Schulter → Ellbogen) = 115 mm, L2 (Ellbogen → Handgelenk) = 135 mm, L3 (Handgelenk → Werkzeugspitze) = 165 mm.
+• Servo-Auflösung: 4096 Schritte = 360°, also 1 Servo-Schritt ≈ 0,088°.
+Achsen: Bewegung und Gradzahlen
+Jede Achse nimmt über USB einen Wert von 0 bis 4095 an. Der Wert wird linear auf den erlaubten Servo-Bereich abgebildet. Ein steigender Wert bewegt die Achse immer in die Richtung der Spalte „4095".
+Achse
+Gelenk
+Dreht um
+Wert 0
+Wert 4095
+Weg gesamt
+Grad pro Schritt
+Wert für Nullpose
+1
+Basis
+senkrechte Z-Achse
+−109,7° (Richtung −Y)
++123,2° (Richtung +Y)
+232,9°
+0,057°
+1929 = Arm zeigt nach vorne (+X)
+2
+Schulter
+waagerechte Achse quer zur Arm-Ebene
+Oberarm 100,9° nach hinten gekippt
+Oberarm 101,2° nach vorne gekippt (11° unter waagerecht)
+202,1°
+0,049°
+2044 = Oberarm senkrecht
+3
+Ellbogen
+waagerechte Achse quer zur Arm-Ebene
+gestreckt (Unterarm in Linie mit Oberarm, 182°)
+ganz eingeklappt (2° zwischen Ober- und Unterarm)
+180,2°
+0,044°
+2093 = 90°, Unterarm waagerecht
+4
+Handgelenk-Neigung
+waagerechte Achse quer zur Arm-Ebene
+Werkzeug 100,9° nach oben
+Werkzeug 101,2° nach unten
+202,1°
+0,049°
+2044 = Werkzeug in Linie mit Unterarm
+5
+Handgelenk-Rotation
+Werkzeugachse L3
+−164,2°
++162,8°
+327,0°
+0,080°
+2056 = Mitte
+6
+Greifer
+Greifer-Servo
+−71,9°
++48,5°
+120,4°
+0,029°
+2445 = Servo-Mitte
+Kurz gesagt, was ein steigender Wert bewirkt:
+• Achse 1: Der Arm schwenkt von −Y nach +Y.
+• Achse 2: Der Oberarm kippt nach vorne und unten.
+• Achse 3: Der Ellbogen klappt ein.
+• Achse 4: Das Werkzeug nickt nach unten.
+• Achse 5: Das Werkzeug dreht sich um seine eigene Achse (Drehsinn noch nicht geprüft).
+• Achse 6: Der Greifer bewegt sich (ob er dabei öffnet oder schließt, ist noch nicht geprüft).
+Achse 2, 3 und 4 drehen alle in derselben senkrechten Arm-Ebene. Achse 1 dreht diese Ebene um Z. Die Gradzahlen sind Servo-Winkel relativ zur Servo-Mitte 2048, berechnet aus LIMITS[] in main.cpp.
+USB-Verbindung und Befehle
+Der Roboter wird über das USB-Kabel am Waveshare-Board mit Textbefehlen gesteuert: 115200 Baud, ein Befehl pro Zeile, mit Zeilenumbruch \n am Ende. Das funktioniert in jedem Funk-Modus. USB-Befehle steuern immer die Gelenke direkt, ohne Kinematik.
+1. Board per USB anschließen. Unter macOS erscheint es als /dev/cu.usbserial-0001.
+2. Seriellen Monitor öffnen, zum Beispiel pio device monitor -b 115200.
+3. Befehle eintippen und mit Enter abschicken.
+Befehl
+Wirkung
+Beispiel
+M <achse> <delta>
+eine Achse relativ bewegen
+M 1 +40, M 6 -100
+P <achse> <wert>
+eine Achse absolut setzen
+P 3 2048
+A <w1> <w2> <w3> <w4> <w5> <w6>
+alle 6 Achsen absolut setzen
+A 1929 2044 2093 2044 2056 2445
+H
+Home: alle Achsen auf 2048
+H
+?
+nur aktuelle Werte abfragen, nichts bewegen
+?
+Antworten des Roboters:
+• Auf jeden gültigen Befehl kommt POS <w1> <w2> <w3> <w4> <w5> <w6> mit den neuen Sollwerten.
+• Bei Fehlern kommt ERR <grund>, zum Beispiel ERR achse 1-6, ERR wert fehlt oder ERR 6 werte noetig.
+Gut zu wissen:
+• Achsen werden von 1 bis 6 gezählt. Werte außerhalb von 0–4095 werden auf den Rand begrenzt, nicht abgelehnt.
+• Kleinbuchstaben gehen auch (m 1 +40). Eine Zeile darf höchstens 63 Zeichen lang sein.
+• Beim Start liest der Roboter die echten Servo-Positionen ein. Ein erstes M fährt also von der aktuellen Pose aus und springt nicht zur Mitte.
+• Sendet gleichzeitig ein Funk-Controller, gilt immer der zuletzt empfangene Befehl.
+Grad in USB-Wert umrechnen
+Ein Winkel wird in zwei Schritten zum USB-Wert: Zuerst Grad in eine Servo-Position umrechnen, dann diese Position in 0–4095.
+\text{Servo} = 2048 + \frac{\text{Grad}}{0{,}08789}
+\text{Wert} = \frac{\text{Servo} - \text{min}}{\text{max} - \text{min}} \cdot 4095
+Rückwärts, also vom USB-Wert zum Winkel:
+\text{Grad} = \left(\text{min} + \frac{\text{Wert}}{4095}\,(\text{max} - \text{min}) - 2048\right) \cdot 0{,}08789
+Achse
+min (Servo)
+max (Servo)
+1 Basis
+800
+3450
+2 Schulter
+900
+3200
+3 Ellbogen
+1000
+3050
+4 Handgelenk-Neigung
+900
+3200
+5 Handgelenk-Rotation
+180
+3900
+6 Greifer
+1230
+2600
+Beispiel Basis um 90° drehen: Servo = 2048 + 90 / 0,08789 = 3072. Wert = (3072 − 800) / 2650 · 4095 = 3511. Für −90° ergibt sich 346.
+Für Schulter, Ellbogen und Handgelenk-Neigung läuft der Gelenkwinkel gegen den Servo-Winkel. Ein positiver Servo-Winkel kippt den Oberarm nach vorne, klappt den Ellbogen ein bzw. neigt das Werkzeug nach unten (siehe Achsentabelle).
+Beispiel-Posen zum Kopieren
+Diese Befehle lassen sich direkt in den seriellen Monitor einfügen. Die Werte sind mit den Formeln oben berechnet.
+Pose
+Befehl
+Nullpose: Basis vorne, Oberarm senkrecht, Unterarm waagerecht
+A 1929 2044 2093 2044 2056 2445
+Arm senkrecht nach oben gestreckt
+A 1929 2044 48 2044 2056 2445
+Arm waagerecht nach vorne gestreckt (hohe Last auf der Schulter)
+A 1929 3867 48 2044 2056 2445
+Nullpose, Werkzeug zeigt senkrecht nach unten
+A 1929 2044 2093 3867 2056 2445
+Basis 90° Richtung +Y
+P 1 3511
+Basis 90° Richtung −Y
+P 1 346
+Basis um etwa 5,7° weiterdrehen
+M 1 +100
+H setzt alle Achsen auf 2048. Das ist nicht genau die Nullpose: Die Basis steht dann bei +6,8° und der Greifer bei −11,7° Servo-Winkel.
+Steuerung aus einem Python-Skript
+Mit pyserial (pip install pyserial) lässt sich der Arm per Programm in Grad ansteuern. Das Skript rechnet Grad in USB-Werte um und schickt P-Befehle.
+import serial, time
+
+
+LIMITS = {1: (800, 3450), 2: (900, 3200), 3: (1000, 3050),
+          4: (900, 3200), 5: (180, 3900), 6: (1230, 2600)}
+
+
+def grad_zu_wert(achse, grad):
+    lo, hi = LIMITS[achse]
+    servo = 2048 + grad / 0.08789
+    return max(0, min(4095, round((servo - lo) / (hi - lo) * 4095)))
+
+
+ser = serial.Serial("/dev/cu.usbserial-0001", 115200, timeout=1)
+time.sleep(2)            # Board startet nach dem Öffnen neu
+ser.reset_input_buffer()
+
+
+def senden(befehl):
+    ser.write((befehl + "\n").encode())
+    while True:
+        zeile = ser.readline().decode().strip()
+        if zeile.startswith(("POS", "ERR")):
+            return zeile
+
+
+print(senden("?"))
+print(senden(f"P 1 {grad_zu_wert(1, 45)}"))   # Basis auf +45° Servo-Winkel
+Die Funktion wartet auf die Antwortzeile. Der Roboter gibt zwischendurch auch Log-Zeilen aus, zum Beispiel Warnungen bei Überlast.
+Grenzen und Sicherheit
+Jede Achse ist hart auf ihren Bereich aus der Tabelle begrenzt. Ein Befehl kann sie nicht über die Anschläge hinausfahren.
+• Kraftbegrenzung pro Servo (0–1000): 800, 900, 900, 700, 500, 600 für Achse 1–6.
+• Drückt ein Gelenk länger als 1,5 s gegen ein Hindernis, blinkt die LED langsam rot. Im Monitor steht dann [S<n>] Force-Überlast. Der Motor hält weiter.
+• Ab 70 °C schaltet sich ein Servo ab und die LED blinkt schnell rot. Unter 55 °C geht er wieder an. Ein abgeschaltetes Gelenk hält keine Last mehr, der Arm kann also absacken.
+• Kleine Änderungen unter 3 Servo-Schritten (≈ 0,26°) werden ignoriert.
+• Der Ellbogen kann mit der Schulter kollidieren: Die Software prüft keine Kollision zwischen den Gliedern oder mit dem Tisch. Große Sprünge daher erst mit kleinen M-Schritten testen.
+Offene Punkte, die am echten Roboter geprüft werden müssen:
