@@ -3,73 +3,120 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mini-Controller → Roboterarm (Simulation)</title>
+<title>Robot Studio · Mini-Controller</title>
+<script>if(!/[?&]from=home\b/.test(location.search))location.replace('index.html');</script>
+<script>(()=>{let t=null;try{t=localStorage.getItem("robot-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t})()</script>
 <style>
-  :root { color-scheme: light; --bg:#f2f2ee; --ink:#1a1a1a; --mute:#6a6a6a; --line:#d8d8d2; --acc:#e8742a; }
+  :root { --bg:#f2f2f2; --panel:#fbfbfb; --head:#fafafa; --field:#ffffff; --line:#dbdbdb; --ink:#222222; --muted:#686868; --orange:#ed7e2a; --hint:#f5f5f5ca; --stage:radial-gradient(ellipse at 50% 40%,#ffffff 0,#ededed 80%); }
+  [data-theme="dark"] { --bg:#121212; --panel:#171717; --head:#161616; --field:#191919; --line:#262626; --ink:#fafafa; --muted:#aaaaaa; --hint:#141414ca; --stage:radial-gradient(ellipse at 50% 40%,#191919 0,#0f0f0f 80%); }
   * { box-sizing:border-box; }
-  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
-  #wrap { display:flex; height:100%; }
-  #view { flex:1; position:relative; min-width:0; touch-action:none; }
-  canvas { display:block; width:100%; height:100%; }
-  #hint { position:absolute; left:14px; top:12px; font-size:12.5px; color:var(--mute); line-height:1.5;
-    background:rgba(255,255,255,.75); padding:8px 12px; border-radius:10px; max-width:310px; }
-  #hint b { color:var(--ink); }
-  #grab { position:absolute; left:40%; top:52px; transform:translateX(-50%); background:#3f9a63; color:#fff; font-size:14px; font-weight:600; padding:6px 16px; border-radius:999px; display:none; box-shadow:0 4px 14px #0003; }
-  #warn { position:absolute; left:40%; max-width:300px; top:12px; transform:translateX(-50%); background:#fff1e6;
-    border:1px solid var(--acc); color:#8a3a12; font-size:13px; padding:5px 14px; border-radius:999px; display:none; }
-  aside { width:300px; background:#fff; border-left:1px solid var(--line); padding:16px; overflow:auto; }
-  aside h2 { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); margin:0 0 8px; font-weight:600; }
-  table { width:100%; border-collapse:collapse; font-size:13px; font-variant-numeric:tabular-nums; }
-  td { padding:5px 0; border-bottom:1px solid #eee; }
-  td:nth-child(2), td:nth-child(3) { text-align:right; }
-  td:nth-child(3) { color:var(--mute); width:64px; }
-  .sec { margin-bottom:18px; }
-  label { display:block; font-size:12px; color:var(--mute); margin-top:8px; }
-  label b { float:right; color:var(--ink); font-weight:600; }
-  input[type=range] { width:100%; accent-color:var(--acc); margin:3px 0 0; }
-  .btns { display:flex; gap:8px; margin-top:4px; }
-  button { color:#1a1a1a; font:inherit; font-size:13px; padding:6px 12px; border-radius:8px; border:1px solid var(--line); background:#f7f7f4; cursor:pointer; }
-  button:hover { border-color:var(--acc); }
-  select, option { color:#1a1a1a; }
-  option { background:#fff; }
-  select { width:100%; font:inherit; font-size:13px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:#f7f7f4; }
-  small { color:var(--mute); font-size:11px; line-height:1.45; display:block; margin-top:8px; }
-  @media (max-width:760px) { #wrap { flex-direction:column; } aside { width:100%; max-height:44%; border-left:0; border-top:1px solid var(--line); } }
+  html,body { margin:0; height:100%; }
+  body { background:var(--bg); color:var(--ink); font:13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; display:flex; flex-direction:column; }
+  button,select,input { font:inherit; color:inherit; }
+  button,a.btn { cursor:pointer; background:var(--field); border:1px solid var(--line); border-radius:7px; padding:9px 12px; font-size:12px; color:var(--ink); text-decoration:none; transition:background .15s; display:inline-flex; align-items:center; gap:6px; }
+  button:hover,a.btn:hover { background:#e8e8e8; }
+  [data-theme="dark"] button:hover,[data-theme="dark"] a.btn:hover { background:#0c0c0c; }
+  button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible { outline:3px solid #ed7e2a88; outline-offset:3px; }
+  button:disabled { opacity:.5; }
+  header { height:76px; flex:none; display:flex; align-items:center; justify-content:space-between; padding:0 30px; border-bottom:1px solid var(--line); background:var(--head); gap:15px; }
+  .brand { display:flex; align-items:center; gap:13px; }
+  .logo { width:34px; height:34px; display:grid; place-items:center; border:1px solid #c3c3c3; border-radius:9px; font-size:24px; color:var(--orange); text-decoration:none; }
+  [data-theme="dark"] .logo { border-color:#414141; }
+  h1 { margin:0; font-size:17px; font-weight:600; letter-spacing:-.5px; }
+  .sub { color:var(--muted); font-size:10px; letter-spacing:1.1px; margin-top:4px; text-transform:uppercase; }
+  .actions { display:flex; gap:8px; align-items:center; }
+  .actions button, .actions a.btn { white-space:nowrap; }
+  @media (max-width:1000px) { .actions .label { display:none; } }
+  .sim-tools { display:flex; gap:8px; padding-right:12px; margin-right:4px; border-right:1px solid var(--line); }
+  #toggle-props[aria-pressed=false] { background:#e6e6e6; }
+  [data-theme="dark"] #toggle-props[aria-pressed=false] { background:#0c0c0c; }
+  #wrap { flex:1; min-height:0; position:relative; overflow:hidden; display:flex; }
+  #view { flex:1; position:relative; min-width:0; touch-action:none; background:var(--stage); overflow:hidden; }
+  #view canvas { display:block; width:100%; height:100%; }
+  .scene-title { position:absolute; left:24px; top:22px; pointer-events:none; }
+  .tag { font:10px monospace; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+  .scene-title h2 { font-size:23px; letter-spacing:-1px; font-weight:400; margin:8px 0 0; }
+  #hint { position:absolute; left:24px; bottom:22px; font-size:11px; color:#676767; line-height:1.75; background:var(--hint); border:1px solid var(--line); border-radius:8px; padding:11px 14px; max-width:360px; pointer-events:none; }
+  [data-theme="dark"] #hint { color:#ababab; }
+  #hint b { color:var(--ink); font-weight:600; }
+  .toast { position:absolute; left:50%; transform:translateX(-50%); z-index:6; padding:9px 16px; border-radius:999px; font-weight:600; font-size:13px; display:none; pointer-events:none; white-space:nowrap; }
+  #grab { top:22px; color:#fff; background:#3f9a63; box-shadow:0 6px 20px #22222233; }
+  #warn { top:66px; max-width:min(520px,80%); white-space:normal; text-align:center; font-weight:500; font-size:12px; color:#9e542b; background:var(--field); border:1px solid var(--orange); }
+  aside { position:absolute; right:0; top:0; bottom:0; z-index:12; width:330px; background:var(--panel); border-left:1px solid var(--line); padding:24px 23px; overflow:auto;
+    transform:translateX(100%); visibility:hidden; transition:transform .25s, visibility .25s; box-shadow:-15px 0 45px #27272718; }
+  #wrap.controls-open aside { transform:translateX(0); visibility:visible; }
+  #toggle-controls { position:absolute; right:0; top:50%; transform:translateY(-50%); z-index:13; border-radius:9px 0 0 9px; border-right:0; padding:18px 10px; font-size:23px; line-height:1; transition:right .25s, background .15s; }
+  #wrap.controls-open #toggle-controls { right:330px; }
+  section { padding-bottom:21px; margin-bottom:20px; border-bottom:1px solid var(--line); }
+  section:last-of-type { border-bottom:0; }
+  h3 { display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin:0 0 14px; }
+  h3 small { font:10px monospace; color:var(--muted); font-weight:400; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  td { padding:6px 0; border-bottom:1px solid var(--line); }
+  td:nth-child(2), td:nth-child(3) { text-align:right; font:11px monospace; }
+  td:nth-child(3) { color:var(--muted); width:52px; }
+  label { display:block; font-size:11px; margin-top:11px; }
+  label:first-of-type { margin-top:0; }
+  label output { float:right; font:11px monospace; color:var(--muted); }
+  input[type=range] { width:100%; accent-color:var(--orange); margin:6px 0 0; height:18px; cursor:pointer; }
+  input[type=range]:disabled { opacity:.45; cursor:default; }
+  input[type=checkbox] { accent-color:var(--orange); }
+  .check { display:flex; gap:8px; align-items:center; font-size:11px; color:var(--muted); margin-top:13px; }
+  select { width:100%; background:var(--field); border:1px solid var(--line); padding:8px; border-radius:7px; font-size:12px; }
+  .row { display:flex; gap:6px; margin-top:14px; }
+  .row button { flex:1; justify-content:center; font-size:11px; padding:9px 4px; }
+  .note { color:var(--muted); font-size:10px; line-height:1.7; margin-top:11px; }
+  @media (max-width:900px) { aside { width:285px; padding:22px 16px; } #wrap.controls-open #toggle-controls { right:285px; } #hint { max-width:280px; } }
+  @media (max-width:720px) {
+    header { padding:0 16px; height:68px; } .sub { display:none; } .actions .label { display:none; } .actions { gap:5px; } .sim-tools { gap:5px; padding-right:6px; } .actions button, .actions a.btn { padding:8px 9px; font-size:11px; }
+    aside { width:min(330px, calc(100vw - 38px)); padding:20px 16px; }
+    #wrap.controls-open #toggle-controls { right:min(330px, calc(100vw - 38px)); }
+    .scene-title { left:16px; top:14px; } .scene-title h2 { font-size:19px; }
+    #hint { left:16px; right:16px; bottom:12px; max-width:none; font-size:10px; padding:8px 11px; }
+  }
 </style>
 </head>
 <body>
+<header>
+  <div class="brand"><a class="logo" href="index.html" title="Zur Übersicht" aria-label="Zur Übersicht">⌁</a><div><h1>Robot Studio</h1><div class="sub">Mini-Controller / Simulation</div></div></div>
+  <div class="actions">
+    <div class="sim-tools" role="group" aria-label="Blöcke in der Simulation"><button id="toggle-props" type="button" aria-pressed="true" title="Blöcke und Ablagen ein- oder ausblenden">Blöcke: ein</button><button id="reset-blocks" type="button" title="Blöcke an ihre Ausgangsposition zurücksetzen">↺<span class="label">Blöcke zurücksetzen</span></button></div>
+    <button id="theme" type="button" title="Hell / Dunkel umschalten">◐<span class="label">Hell / Dunkel</span></button>
+    <a class="btn" href="index.html">←<span class="label">Übersicht</span></a>
+  </div>
+</header>
 <div id="wrap">
   <div id="view">
-    <a href="index.html" style="position:absolute;left:14px;bottom:14px;z-index:5;font-size:13px;color:#1a1a1a;text-decoration:none;background:rgba(255,255,255,.85);border:1px solid #d8d8d2;padding:6px 12px;border-radius:999px">← Übersicht</a>
+    <div class="scene-title"><div class="tag">Follower 3× · Wandmontage</div><h2>Mini-Controller → Roboterarm</h2></div>
     <div id="hint"><b>Mini-Controller greifen:</b> orange Punkte ziehen.<br>
-      <b>Stangenende</b> = Drehung, Neigung und Auszug · <b>Handgelenk</b> = Neigung · <b>Greifer drehen</b> = Punkt um die Achse ziehen · <b>Greifer</b> = auf/zu.<br>
-      Boxen am Boden: Greifer fast schließen (unter ca. 25 %) = aufnehmen, über 55 % öffnen = loslassen.<br>Zwei Finger = Blickwinkel ändern · Pinch = Zoom · Shift + zwei Finger = verschieben. Leere Fläche mit der Maus ziehen = Kamera verschieben.</div>
-    <div id="warn"></div><div id="grab">✓ Box gegriffen</div>
+      <b>Stangenende</b> = Drehung, Neigung und Auszug · <b>Handgelenk</b> = Neigung · <b>Greifer drehen</b> = schwarzen Punkt (im Dark Mode weiß) um die Achse ziehen · <b>Greifer</b> = auf/zu.<br>
+      Blöcke: zwischen die Backen bringen und schließen – gegriffen, sobald beide Backen anliegen. Leicht öffnen = loslassen. Auf den Ablagen kann man sie abstellen.<br>Zwei Finger = Blickwinkel · Pinch = Zoom · Shift + zwei Finger = verschieben · leere Fläche ziehen = Kamera verschieben.</div>
+    <div id="warn" class="toast"></div><div id="grab" class="toast">✓ Box gegriffen</div>
   </div>
-  <aside>
-    <div class="sec">
-      <label style="margin:0 0 10px;color:#1a1a1a"><input type="checkbox" id="seeThrough" checked style="vertical-align:middle;margin-right:6px">Wände durchsichtig</label>
-      <h2>Variante</h2>
-      <select id="variant"><option value="1">Variante 1 · Mini-Greifer</option><option value="2">Variante 2 · Kugel + Mini-Greifer am Boden</option></select>
-    </div>
-    <div class="sec">
-      <h2>Werte für den echten Arm</h2>
+  <button id="toggle-controls" type="button" aria-expanded="false" aria-controls="controls" title="Steuerung ausklappen">‹</button>
+  <aside id="controls" aria-label="Steuerung und Achswerte" inert>
+    <section>
+      <h3>Variante</h3>
+      <select id="variant"><option value="1">Variante 1 · Mini-Greifer</option><option value="2" selected>Variante 2 · Kugel + Mini-Greifer am Boden</option></select>
+      <label class="check"><input type="checkbox" id="seeThrough" checked>Wände durchsichtig</label>
+    </section>
+    <section>
+      <h3>Werte für den echten Arm <small>USB 0–4095</small></h3>
       <table id="axes"></table>
-      <small>Ausgabe wie über USB (0–4095), berechnet mit euren Kalibrierwerten. Achse 5 (Werkzeug-Rotation) bleibt in Mittelstellung.</small>
-    </div>
-    <div class="sec">
-      <h2>Mini-Controller (Regler)</h2>
-      <label>Drehung <b id="vPan"></b><input id="pan" type="range" min="-90" max="90" step="1"></label>
-      <label>Neigung <b id="vTilt"></b><input id="tilt" type="range" min="-90" max="90" step="1"></label>
-      <label>Auszug <b id="vExt"></b><input id="ext" type="range" min="100" max="250" step="1"></label>
-      <label>Handgelenk <b id="vWrist"></b><input id="wrist" type="range" min="-100" max="100" step="1"></label>
-      <label>Greifer drehen (Achse 5) <b id="vRoll"></b><input id="roll" type="range" min="-160" max="160" step="1"></label>
-      <label>Greifer <b id="vGrip"></b><input id="grip" type="range" min="0" max="100" step="1"></label>
-      <div id="gripBtns" style="display:none"><div class="btns"><button id="bClose">Schließen (Leertaste)</button><button id="bOpen">Öffnen (2× Leertaste)</button></div><small>Variante 2: Mit einer Hand die Kugel am Mini-Controller greifen. Mit der anderen am Mini-Greifer am Boden: Leertaste halten = schließen, Leertaste zweimal (beim zweiten Mal halten) = öffnen. Loslassen = er bleibt in der Stellung, in der ihr aufgehört habt. Den orangen Punkt am Mini-Greifer ziehen = drehen. Vorher einmal auf die Seite klicken, damit die Tasten ankommen.</small></div>
-      <div class="btns"><button id="demo">▶ Demo</button><button id="reset">Zurücksetzen</button></div>
-    </div>
-    <small>Follower wie in eurer Datei (Woche 7), aber 3-mal so groß wie der Mini-Controller: Wandmontage, Basisachse zeigt vom Brett weg, Gliedlängen 115 / 135 / 165 mm, Servo-Bereiche aus „Roboter Achsen.txt“. Der Mini-Controller hängt an derselben Wand. Er ist wie der Follower aufgebaut, nur sitzt zwischen Gelenk 2 und Gelenk 4 eine verschiebbare Stange in 1/3 der Größe des Followers (Auszug 100–245 mm). Die Länge der Hülse und Stange ist ein Entwurf.</small>
+      <div class="note">Berechnet mit euren Kalibrierwerten.</div>
+    </section>
+    <section>
+      <h3>Mini-Controller <small>Regler</small></h3>
+      <label>Drehung <output id="vPan"></output><input id="pan" type="range" min="-90" max="90" step="1"></label>
+      <label>Neigung <output id="vTilt"></output><input id="tilt" type="range" min="-90" max="90" step="1"></label>
+      <label>Auszug <output id="vExt"></output><input id="ext" type="range" min="100" max="250" step="1"></label>
+      <label>Handgelenk <output id="vWrist"></output><input id="wrist" type="range" min="-100" max="100" step="1"></label>
+      <label>Greifer drehen (Achse 5) <output id="vRoll"></output><input id="roll" type="range" min="-160" max="160" step="1"></label>
+      <label>Greifer <output id="vGrip"></output><input id="grip" type="range" min="0" max="100" step="1"></label>
+      <div id="gripBtns" style="display:none"><div class="row"><button id="bClose">Schließen (Leertaste)</button><button id="bOpen">Öffnen (2× Leertaste)</button></div><div class="note">Variante 2: Mit einer Hand die Kugel am Mini-Controller greifen. Mit der anderen am Mini-Greifer am Boden: Leertaste halten = schließen, Leertaste zweimal (beim zweiten Mal halten) = öffnen. Loslassen = er bleibt in der Stellung, in der ihr aufgehört habt. Den schwarzen Punkt (im Dark Mode weiß) am Mini-Greifer ziehen = drehen. Vorher einmal auf die Seite klicken, damit die Tasten ankommen.</div></div>
+      <div class="row"><button id="demo">▶ Demo</button><button id="reset">Zurücksetzen</button></div>
+    </section>
+    <div class="note">Follower wie in eurer Datei (Woche 7), aber 3-mal so groß wie der Mini-Controller: Wandmontage, Basisachse zeigt vom Brett weg, Gliedlängen 115 / 135 / 165 mm, Servo-Bereiche aus „Roboter Achsen.txt“. Der Mini-Controller hängt an derselben Wand. Er ist wie der Follower aufgebaut, nur sitzt zwischen Gelenk 2 und Gelenk 4 eine verschiebbare Stange in 1/3 der Größe des Followers (Auszug 100–245 mm). Die Länge der Hülse und Stange ist ein Entwurf.</div>
   </aside>
 </div>
 
@@ -157,22 +204,36 @@
 
   // ---------- Szene ----------
   var host = document.getElementById('view');
-  var renderer = new THREE.WebGLRenderer({ antialias: true });
+  var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   host.insertBefore(renderer.domElement, host.firstChild);
   var scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf2f2ee);
+  scene.background = null;   // Hintergrund kommt aus dem CSS-Verlauf (wie Robot Studio 3D)
   var camera = new THREE.PerspectiveCamera(38, 1, 20, 30000);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-  var sun = new THREE.DirectionalLight(0xffffff, 0.65); sun.position.set(500, 900, -300); scene.add(sun);
+  var amb = new THREE.AmbientLight(0xffffff, 0.55); scene.add(amb);
+  var sun = new THREE.DirectionalLight(0xffffff, 0.5); sun.position.set(500, 900, -300); scene.add(sun);
 
-  var floor = new THREE.Mesh(new THREE.PlaneGeometry(4200, 4200), new THREE.MeshStandardMaterial({ color: 0xe9e9e3, roughness: 1 }));
-  floor.rotation.x = -Math.PI / 2; floor.position.set(-300, FLOOR_Z - 0.5, -1100); scene.add(floor);
-  var grid = new THREE.GridHelper(4200, 42, 0xc9c9c2, 0xdcdcd5); grid.position.set(-300, FLOOR_Z, -1100); scene.add(grid);
+  // Boden wie in der Robot-Studio-3D-Steuerung: feines Linienraster ohne Fläche, Achslinien etwas kräftiger
+  var GRID_STEP = 50 * 3, GX0 = -180, GX1 = 2220, GY0 = -1000, GY1 = 2650;
+  var gridMinor = new THREE.LineBasicMaterial({ color: 0xdadada, transparent: true, opacity: 0.9 });
+  var gridMajor = new THREE.LineBasicMaterial({ color: 0xc0c0c0 });
+  (function buildGrid() {
+    var minor = [], major = [];
+    function line(arr, a, b) { var A = T(a), B = T(b); arr.push(A.x, A.y, A.z, B.x, B.y, B.z); }
+    for (var x = GX0; x <= GX1 + 0.1; x += GRID_STEP) line(Math.abs(x) < 1 ? major : minor, [x, GY0, FLOOR_Z], [x, GY1, FLOOR_Z]);
+    for (var y = GY0; y <= GY1 + 0.1; y += GRID_STEP) line(minor, [GX0, y, FLOOR_Z], [GX1, y, FLOOR_Z]);
+    line(major, [GX0, FOLLOWER[1], FLOOR_Z + 0.5], [GX1, FOLLOWER[1], FLOOR_Z + 0.5]);   // Mittellinie des Followers
+    line(major, [GX0, CTRL_P[1], FLOOR_Z + 0.5], [GX1, CTRL_P[1], FLOOR_Z + 0.5]);       // Mittellinie des Mini-Controllers
+    [[minor, gridMinor], [major, gridMajor]].forEach(function (g) {
+      var geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(g[0], 3));
+      scene.add(new THREE.LineSegments(geo, g[1]));
+    });
+  })();
 
   function mat(c, r) { return new THREE.MeshStandardMaterial({ color: c, roughness: r === undefined ? 0.6 : r, metalness: 0.1 }); }
-  var BLACK = mat(0x262626), DARK = mat(0x3a3a3a), GREY = mat(0x8f8f8f), BROWN = mat(0x6b4a2a, 0.85);
-  BROWN.transparent = true; BROWN.opacity = 0.25; BROWN.depthWrite = false;   // Wände durchsichtig
+  var BLACK = mat(0x262626), DARK = mat(0x3a3a3a), GREY = mat(0x8f8f8f), BROWN = mat(0xd4d4d4, 0.9);   // Wandplatte neutral grau wie in Robot Studio 3D
+  BROWN.transparent = true; BROWN.opacity = 0.45; BROWN.depthWrite = false;   // Wände durchsichtig
   var UNIT = new THREE.BoxGeometry(1, 1, 1), YAXIS = new THREE.Vector3(0, 1, 0);
 
   function segMesh(m, th) { var x = new THREE.Mesh(UNIT, m); scene.add(x); x.userData.th = th; return x; }
@@ -198,50 +259,287 @@
   var labelList = [];
   function label(text, p, sc) {
     var c = document.createElement('canvas'); c.width = 640; c.height = 96;
-    var g = c.getContext('2d'); g.font = '600 38px sans-serif'; g.fillStyle = '#1a1a1a'; g.textAlign = 'center'; g.fillText(text, 320, 58);
     var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false }));
+    s.userData.paint = function (col) { var g = c.getContext('2d'); g.clearRect(0, 0, 640, 96); g.font = '600 38px -apple-system, sans-serif'; g.fillStyle = col; g.textAlign = 'center'; g.fillText(text, 320, 58); s.material.map.needsUpdate = true; };
+    s.userData.paint('#222222');
     s.scale.set(300 * (sc || 1), 45 * (sc || 1), 1); s.position.copy(T(p)); scene.add(s); labelList.push(s); return s;
   }
 
   // Wand (reicht bis zum Boden)
-  boxAt([-60, CTRL_P[1], -180], [20, 150, 440], BROWN);                                   // Wand Mini-Controller
+  var ctrlWall = boxAt([-60, CTRL_P[1], -180], [20, 150, 440], BROWN);                                   // Wand Mini-Controller
   boxAt([-60 * SF, FOLLOWER[1], (FLOOR_Z + FOLLOWER[2] + 120) / 2], [20 * SF, 150 * SF, FOLLOWER[2] + 120 - FLOOR_Z], BROWN);   // Wand Follower
 
-  // Follower am Brett (3x)
-  boxAt([-32 * SF, FOLLOWER[1], FOLLOWER[2]], [36 * SF, 65 * SF, 82 * SF], BLACK);
-  var fBase = cyl(32 * SF, 40 * SF, DARK); fBase.position.copy(T([-5 * SF, FOLLOWER[1], FOLLOWER[2]])); fBase.rotation.x = Math.PI / 2;
-  var fl1 = segMesh(BLACK, 36 * SF), fl2 = segMesh(BLACK, 32 * SF), fTool = segMesh(BLACK, 38 * SF);
-  var fJ = [cyl(30 * SF, 58 * SF, BLACK), cyl(27 * SF, 54 * SF, BLACK), cyl(24 * SF, 50 * SF, BLACK)];
-  var fCap = [cyl(11 * SF, 62 * SF, GREY), cyl(10 * SF, 58 * SF, GREY), cyl(9 * SF, 54 * SF, GREY)];
-  var jawFixed = segMesh(BLACK, 8 * SF), jawMove = segMesh(DARK, 8 * SF);
+  // ---------- Follower: genau wie der Arm in robot-control-3d.html (model()), nur 3x so groß ----------
+  function fmat(c) { return new THREE.MeshPhongMaterial({ color: c, flatShading: true, shininess: 0, specular: 0x000000 }); }
+  var F_MAIN = fmat(0x343434), F_LIGHT = fmat(0x484848), F_DARK = fmat(0x7d7d7d), F_METAL = fmat(0xafafaf), F_CAM = fmat(0x537995);
+  var FPOOL = { box: [], c18: [], c12: [] }, FUSE = { box: 0, c18: 0, c12: 0 };
+  var GEO = { box: new THREE.BoxGeometry(1, 1, 1), c18: new THREE.CylinderGeometry(1, 1, 1, 18), c12: new THREE.CylinderGeometry(1, 1, 1, 12) };
+  function fMesh(kind, m) {
+    var x = FPOOL[kind][FUSE[kind]];
+    if (!x) { x = new THREE.Mesh(GEO[kind], m); x.matrixAutoUpdate = false; scene.add(x); FPOOL[kind].push(x); }
+    FUSE[kind]++; x.material = m; x.visible = true; return x;
+  }
+  function fBegin() { FUSE.box = FUSE.c18 = FUSE.c12 = 0; }
+  function fEnd() { Object.keys(FPOOL).forEach(function (k) { for (var i = FUSE[k]; i < FPOOL[k].length; i++) FPOOL[k][i].visible = false; }); }
+  function unit(v) { var l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; }
+  function mix(a, b, t) { return add(a, mul([b[0] - a[0], b[1] - a[1], b[2] - a[2]], t)); }
+  function V3(v) { return new THREE.Vector3(-v[1], v[2], -v[0]); }   // Richtung Welt -> three.js
+  var _m = new THREE.Matrix4(), _s = new THREE.Matrix4();
+  var FCAP = null, FPART = 'arm';   // FCAP gesetzt = Kollisionskörper sammeln statt zeichnen
+  function fBox(c, size, axes, m) {   // wie box(center, sizes, axes, color)
+    axes = axes || [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    if (FCAP) { FCAP.push({ p: c.slice(), half: [size[0] / 2, size[1] / 2, size[2] / 2], axes: axes, part: FPART }); return; }
+    var x = fMesh('box', m);
+    x.matrix.makeBasis(V3(axes[0]), V3(axes[1]), V3(axes[2])).multiply(_s.makeScale(size[0], size[1], size[2])).setPosition(T(c));
+  }
+  function fSeg(a, b, w, dp, n, m) {   // wie segment(a, b, width, depth, n, color)
+    var d = unit([b[0] - a[0], b[1] - a[1], b[2] - a[2]]), nn = unit(n), th = unit(cross3(d, nn));
+    fBox(mix(a, b, 0.5), [Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), w, dp], [d, nn, th], m);
+  }
+  var _q = new THREE.Quaternion();
+  function fCyl(c, axis, r, len, m, steps) {   // wie cylinder(center, axis, radius, length, color, steps)
+    if (FCAP) { var dd = unit(axis), nn = unit(cross3(dd, Math.abs(dd[2]) < 0.9 ? [0, 0, 1] : [0, 1, 0])), mm = cross3(dd, nn);
+      FCAP.push({ p: c.slice(), half: [r, r, len / 2], axes: [nn, mm, dd], part: FPART }); return; }
+    var x = fMesh(steps === 12 ? 'c12' : 'c18', m);
+    _q.setFromUnitVectors(YAXIS, V3(unit(axis)).normalize());
+    x.matrix.compose(T(c), _q, new THREE.Vector3(r, len, r));
+  }
+  function followerModel(F, a5, grip) {
+    var S = SF, O = FOLLOWER, p = F.pts, d = F.d, n = F.n;
+    var at0 = function (v) { return add(O, mul(v, S)); };
+    if (!FCAP) fBegin(); FPART = 'arm';
+    fBox(at0([-32, 0, 0]), [36 * S, 65 * S, 82 * S], null, F_MAIN);
+    fCyl(at0([-14, 0, 0]), [1, 0, 0], 27 * S, 38 * S, F_DARK);
+    fBox(at0([-9, 0, 0]), [28 * S, 54 * S, 14 * S], null, F_LIGHT);
+    for (var i = 0; i < 3; i++) {
+      var q = p[i], radius = [21, 18, 15][i] * S, length = [54, 46, 36][i] * S;
+      fCyl(q, n, radius, length, F_DARK);
+      [-1, 1].forEach(function (side) {
+        fCyl(add(q, mul(n, side * length / 2)), n, radius + 2 * S, 7 * S, F_LIGHT);
+        fCyl(add(q, mul(n, side * (length / 2 + 4 * S))), n, 5 * S, 3 * S, F_METAL, 12);
+      });
+    }
+    for (var k = 0; k < 2; k++) {
+      var a = add(p[k], mul(d[k], 15 * S)), b = add(p[k + 1], mul(d[k], -15 * S));
+      [-1, 1].forEach(function (side) { fSeg(add(a, mul(n, side * 15 * S)), add(b, mul(n, side * 15 * S)), 8 * S, 22 * S, n, k ? F_LIGHT : F_MAIN); });
+      fSeg(mix(a, b, 0.45), mix(a, b, 0.65), 26 * S, 18 * S, n, F_DARK);
+    }
+    // Werkzeug
+    FPART = 'tool';
+    var dir = d[2], t = a5 * RAD, perp = unit(cross3(dir, n));
+    var rollN = add(mul(n, Math.cos(t)), mul(perp, Math.sin(t))), rollUp = cross3(dir, rollN);
+    var at = function (sv) { return add(p[2], mul(dir, sv * S)); };
+    fSeg(at(0), at(42), 22 * S, 24 * S, n, F_MAIN);
+    fCyl(at(45), dir, 19 * S, 22 * S, F_DARK);
+    fCyl(at(56), dir, 21 * S, 7 * S, F_LIGHT);
+    fBox(at(77), [37 * S, 43 * S, 23 * S], [dir, rollN, rollUp], F_MAIN);
+    // Backen (JAW_OFFSET -90 wie in der 3D-Steuerung)
+    var t2 = (a5 - 90) * RAD, normal = add(mul(n, Math.cos(t2)), mul(perp, Math.sin(t2))), hinge = cross3(dir, normal);
+    var axy = function (x, y) { return add(p[2], add(mul(dir, x * S), mul(normal, y * S))); };
+    var pivot = axy(91, 12), o = grip / 100 * 60 * RAD;
+    var swung = function (x, y) { return add(pivot, add(mul(dir, (x * Math.cos(o) - y * Math.sin(o)) * S), mul(normal, (x * Math.sin(o) + y * Math.cos(o)) * S))); };
+    var fixed = [axy(91, -12), axy(131, -12), axy(165, -12)], moving = [pivot, swung(40, 0), swung(74, -24)];
+    FPART = 'jaws';
+    for (var j = 1; j < 3; j++) { fSeg(fixed[j - 1], fixed[j], 8 * S, 10 * S, hinge, F_MAIN); fSeg(moving[j - 1], moving[j], 8 * S, 10 * S, hinge, F_LIGHT); }
+    fCyl(moving[0], hinge, 7 * S, 27 * S, F_DARK, 12);
+    fBox(fixed[0], [14 * S, 12 * S, 20 * S], [dir, rollN, rollUp], F_MAIN);
+    // Kamera an der Backe
+    FPART = 'camera';
+    var camO = add(p[3], mul(dir, -65 * S));
+    fBox(add(camO, mul(dir, -14 * S)), [18 * S, 18 * S, 12 * S], [dir, rollN, rollUp], F_DARK);
+    fCyl(add(camO, mul(dir, -4 * S)), dir, 5 * S, 4 * S, F_CAM, 12);
+    if (!FCAP) fEnd();
+    var fm = mix(fixed[1], fixed[2], 0.55), mm = mix(moving[1], moving[2], 0.55);
+    return { anchor: mix(fm, mm, 0.5), dir: dir, normal: normal, hinge: hinge, basis: [dir, normal, hinge], fixed: fixed, moving: moving, p2: p[2] };
+  }
+  function robotSolids(st) { FCAP = []; followerModel(fk(st.a), st.a5, st.grip); var out = FCAP; FCAP = null; return out; }
+  function gripFrame(st) { FCAP = []; var g = followerModel(fk(st.a), st.a5, st.grip); FCAP = null; return g; }
   label('Follower (Roboterarm, 3x)', [0, FOLLOWER[1], FOLLOWER[2] + 420], 3);
 
   // Mini-Controller: gleicher Aufbau wie der Follower, in der Mitte eine verschiebbare Stange
-  boxAt([-32, CTRL_P[1], 0], [36, 65, 82], BLACK);
+  var ctrlFoot = boxAt([-32, CTRL_P[1], 0], [36, 65, 82], BLACK);
   var cBase = cyl(32, 40, DARK); cBase.position.copy(T([-5, CTRL_P[1], 0])); cBase.rotation.x = Math.PI / 2;
   var cShoulder = cyl(30, 58, BLACK), cShoulderCap = cyl(11, 62, GREY);
   var cSleeve = segMesh(BLACK, 40), cRod = segMesh(GREY, 20);
   var cWristJ = cyl(24, 50, BLACK), cWristCap = cyl(9, 54, GREY);
   var cBody = segMesh(BLACK, 38), cJawFixed = segMesh(BLACK, 8), cJawMove = segMesh(DARK, 8);
-  var cBall = ball(34, mat(0xf0f0ea, 0.4));
+  var BALLM = mat(0xf0f0ea, 0.4), cBall = ball(34, BALLM);
   // Variante 2: Mini-Greifer am Boden vor dem Mini-Controller
   var MGX = 230, MGY = CTRL_P[1] - 320, MGZ = FLOOR_Z + 3;   // Mini-Greifer liegt auf dem Boden, näher zur Kamera
-  var WHITEM = mat(0xf0f0ea, 0.5);
+  var WHITEM = mat(0x1c1c1c, 0.45);   // Mini-Greifer: hell = schwarz, dunkel = weiß (siehe applyTheme)
   var gHinge = cyl(5, 80, BLACK);
   var gPlateA = new THREE.Mesh(UNIT, WHITEM), gPlateB = new THREE.Mesh(UNIT, WHITEM); scene.add(gPlateA); scene.add(gPlateB);
   var gLabel = label('Mini-Greifer (Leertaste)', [MGX, MGY, FLOOR_Z + 150]);
   var gObjs = [gHinge, gPlateA, gPlateB, gLabel];
-  label('Mini-Controller', [0, CTRL_P[1], 120]);
+  var ctrlLabel = label('Mini-Controller', [0, CTRL_P[1], 120]);
 
-  // Boxen zum Greifen (am Boden vor dem Follower)
-  var BOX = 90, BOXSTART = [[120, FOLLOWER[1] - 150], [170, FOLLOWER[1] + 60], [100, FOLLOWER[1] + 190]];
-  var BOXCOL = [0x6c8f73, 0x5b7ba3, 0xb08a5a];
-  var boxes = BOXSTART.map(function (b, i) {
-    var m = new THREE.Mesh(new THREE.BoxGeometry(BOX, BOX, BOX), mat(BOXCOL[i], 0.7)); scene.add(m);
-    return { col: BOXCOL[i], mesh: m, start: [b[0], b[1], FLOOR_Z + BOX / 2], pos: [b[0], b[1], FLOOR_Z + BOX / 2], held: false, off: [0, 0, 0], vz: 0 };
+  // ---------- Blöcke und Ablagen wie in robot-control-3d.html (Größen x3) ----------
+  var IDENT = function () { return [[1, 0, 0], [0, 1, 0], [0, 0, 1]]; };
+  var BLOCKS = [
+    { name: 'A', home: [120, FOLLOWER[1] - 150], size: [32, 32, 44], color: [255, 107, 94] },
+    { name: 'B', home: [170, FOLLOWER[1] + 60], size: [36, 36, 48], color: [99, 102, 241] },
+    { name: 'C', home: [100, FOLLOWER[1] + 190], size: [28, 28, 40], color: [251, 191, 36] }
+  ];
+  var boxes = BLOCKS.map(function (o) {
+    var size = o.size.map(function (v) { return v * SF; });
+    var m = new THREE.Mesh(UNIT, new THREE.MeshPhongMaterial({ color: new THREE.Color(o.color[0] / 255, o.color[1] / 255, o.color[2] / 255), flatShading: true, shininess: 0, specular: 0x000000 }));
+    m.matrixAutoUpdate = false; scene.add(m);
+    var start = [o.home[0], o.home[1], FLOOR_Z + size[2] / 2];
+    return { name: o.name, col: o.color, mesh: m, size: size, start: start, pos: start.slice(), axes: IDENT(), vz: 0, tag: label(o.name, start, 0.6) };
   });
-  function placeBoxes() { boxes.forEach(function (b) { b.mesh.position.copy(T(b.pos)); }); }
-  function resetBoxes() { boxes.forEach(function (b) { b.pos = b.start.slice(); b.held = false; b.vz = 0; }); placeBoxes(); }
+  var PLATFORMS = [{ p: [155, -190, -100], size: [90, 70, 10] }, { p: [200, 175, -80], size: [90, 70, 10] }].map(function (o) {
+    return { p: [o.p[0] * SF, FOLLOWER[1] + o.p[1] * SF, FLOOR_Z + (o.p[2] + 385) * SF], size: o.size.map(function (v) { return v * SF; }) };
+  });
+  var PLAT_M = mat(0xafafaf, 0.8), PLAT_TOP = mat(0xd2d2d2, 0.8), platMeshes = [];
+  PLATFORMS.forEach(function (o, i) {
+    platMeshes.push(boxAt(o.p, o.size, PLAT_M));
+    platMeshes.push(boxAt(add(o.p, [0, 0, o.size[2] / 2 + 1]), [o.size[0] - 8 * SF, o.size[1] - 8 * SF, 2], PLAT_TOP));
+    platMeshes.push(label('ABLAGE ' + (i + 1), add(o.p, [0, 0, 60]), 0.9));
+  });
+  var PLAT_BODIES = PLATFORMS.map(function (o) { return { p: o.p, half: o.size.map(function (v) { return v / 2; }), axes: IDENT(), part: 'platform' }; });
+  var propsOn = true, held = null, cap = null, fstate = null, prevGrip = null, blocked = false;
+  function placeBoxes() {
+    boxes.forEach(function (b) {
+      var a = b.axes; b.mesh.matrix.makeBasis(V3(a[0]), V3(a[1]), V3(a[2])).multiply(_s.makeScale(b.size[0], b.size[1], b.size[2])).setPosition(T(b.pos));
+      b.mesh.visible = propsOn; b.tag.visible = propsOn; b.tag.position.copy(T(add(b.pos, [0, 0, objectExtent(b, [0, 0, 1]) + 40])));
+      var c = b === held ? b.col.map(function (v, i) { return Math.round(v * 0.45 + [70, 190, 110][i] * 0.55); }) : b.col;
+      b.mesh.material.color.setRGB(c[0] / 255, c[1] / 255, c[2] / 255);
+    });
+    platMeshes.forEach(function (m) { m.visible = propsOn; });
+  }
+  function resetBoxes() { held = null; cap = null; boxes.forEach(function (b) { b.pos = b.start.slice(); b.axes = IDENT(); b.vz = 0; }); placeBoxes(); }
+
+  // Kollision (Trennachsen-Test für gedrehte Quader) – wie contact() in der 3D-Steuerung
+  function objectExtent(o, axis) { return o.axes.reduce(function (sum, a, i) { return sum + Math.abs(dot(a, axis)) * o.size[i] / 2; }, 0); }
+  function boxSolid(o) { return { p: o.pos, half: o.size.map(function (v) { return v / 2; }), axes: o.axes, part: 'object' }; }
+  function solidExtent(b, axis) { return b.axes.reduce(function (sum, a, i) { return sum + Math.abs(dot(a, axis)) * b.half[i]; }, 0); }
+  function contact(a, b) {
+    var delta = [b.p[0] - a.p[0], b.p[1] - a.p[1], b.p[2] - a.p[2]], radius = Math.hypot(a.half[0], a.half[1], a.half[2]) + Math.hypot(b.half[0], b.half[1], b.half[2]);
+    if (dot(delta, delta) > radius * radius) return null;
+    var axes = a.axes.concat(b.axes);
+    a.axes.forEach(function (x) { b.axes.forEach(function (y) { var n = cross3(x, y), l = Math.hypot(n[0], n[1], n[2]); if (l > 1e-5) axes.push([n[0] / l, n[1] / l, n[2] / l]); }); });
+    var depth = Infinity, normal = null;
+    for (var i = 0; i < axes.length; i++) {
+      var n = axes[i], d = dot(delta, n), overlap = solidExtent(a, n) + solidExtent(b, n) - Math.abs(d);
+      if (overlap <= 0.05) return null;
+      if (overlap < depth) { depth = overlap; normal = mul(n, d >= 0 ? 1 : -1); }
+    }
+    return { normal: normal, depth: depth };
+  }
+  // Wo liegt die Box zwischen den Backen? (fingerFit der 3D-Steuerung, Maße x3)
+  function fingerFit(o, st) {
+    var S = SF, g = gripFrame(st), d = [o.pos[0] - g.p2[0], o.pos[1] - g.p2[1], o.pos[2] - g.p2[2]];
+    var x = dot(d, g.dir), n = dot(d, g.normal), z = dot(d, g.hinge), hx = objectExtent(o, g.dir), hn = objectExtent(o, g.normal), hz = objectExtent(o, g.hinge);
+    var a = [g.moving[1][0] - g.p2[0], g.moving[1][1] - g.p2[1], g.moving[1][2] - g.p2[2]], b = [g.moving[2][0] - g.p2[0], g.moving[2][1] - g.p2[1], g.moving[2][2] - g.p2[2]];
+    var ax = dot(a, g.dir), bx = dot(b, g.dir), ay = dot(a, g.normal), by = dot(b, g.normal), t = (x - ax) / ((bx - ax) || 1e-6), moving = ay + (by - ay) * t - 5 * S;
+    var overlap = Math.min(x + hx, 165 * S, Math.max(ax, bx)) - Math.max(x - hx, 115 * S, Math.min(ax, bx));
+    return { fixed: n - hn + 7 * S, moving: moving - n - hn, depth: overlap >= Math.min(10 * S, hx) && x > 110 * S && x < 174 * S, height: Math.abs(z) < Math.max(6 * S, hz - 2 * S), normal: g.normal };
+  }
+  function withinFingers(o, st, contactOnly) {
+    var f = fingerFit(o, st), S = SF;
+    return f.depth && f.height && f.fixed >= -4 * S && f.fixed <= 12 * S && (!contactOnly || (f.moving <= 3 * S && f.moving >= -8 * S));
+  }
+  function graspCandidate(st) {
+    if (!propsOn) return null;
+    var anc = gripFrame(st).anchor;
+    return boxes.filter(function (o) { return o !== held && withinFingers(o, st, true); })
+      .sort(function (a, b) { return Math.hypot(a.pos[0] - anc[0], a.pos[1] - anc[1], a.pos[2] - anc[2]) - Math.hypot(b.pos[0] - anc[0], b.pos[1] - anc[1], b.pos[2] - anc[2]); })[0] || null;
+  }
+  // Greifen: Box an die feste Backe schieben, bewegliche Backe genau bis zur Box schließen
+  function captureObject(o, st) {
+    var cmdGrip = st.grip, f = fingerFit(o, st);
+    o.pos = add(o.pos, mul(f.normal, -clamp(f.fixed, -4 * SF, 12 * SF)));
+    o.pos[2] = Math.max(o.pos[2], FLOOR_Z + objectExtent(o, [0, 0, 1]));
+    var lo = 0, hi = 100;
+    for (var i = 0; i < 16; i++) { var mid = (lo + hi) / 2, v = { a: st.a, a5: st.a5, grip: mid }; if (fingerFit(o, v).moving < 0) lo = mid; else hi = mid; }
+    st.grip = hi;
+    var g = gripFrame(st);
+    held = o; o.vz = 0;
+    cap = { grip: hi, minGrip: cmdGrip, offset: g.basis.map(function (a) { return dot([o.pos[0] - g.anchor[0], o.pos[1] - g.anchor[1], o.pos[2] - g.anchor[2]], a); }),
+            axes: o.axes.map(function (a) { return g.basis.map(function (b) { return dot(a, b); }); }) };
+  }
+  function fromLocal(local, basis) { return local.reduce(function (p, v, i) { return add(p, mul(basis[i], v)); }, [0, 0, 0]); }
+  function placeHeld(st) { var g = gripFrame(st); held.pos = add(g.anchor, fromLocal(cap.offset, g.basis)); held.axes = cap.axes.map(function (a) { return fromLocal(a, g.basis); }); }
+  function pushContact(o, hit) {
+    var h = Math.hypot(hit.normal[0], hit.normal[1]);
+    if (h > 0.25) { var dist = (hit.depth + 0.08) / h; o.pos[0] += hit.normal[0] / h * dist; o.pos[1] += hit.normal[1] / h * dist; return true; }
+    if (hit.normal[2] > 0.6) { o.pos[2] += (hit.depth + 0.08) / hit.normal[2]; o.vz = 0; return true; }
+    return false;   // Arm drückt von oben auf die Box -> Bewegung wird gestoppt
+  }
+  function lerpState(a, b, t) { return { a: a.a.map(function (v, i) { return v + (b.a[i] - v) * t; }), a5: a.a5 + (b.a5 - a.a5) * t, grip: a.grip + (b.grip - a.grip) * t }; }
+  // Bewegung in kleinen Schritten prüfen (resolvePoseContacts der 3D-Steuerung): Boxen werden geschoben,
+  // Ablagen und eine Box, auf die der Arm von oben drückt, stoppen den Arm. Schließt der Greifer an einer Box, wird sie gegriffen.
+  function resolveContacts(from, to) {
+    var snap = boxes.map(function (o) { return { pos: o.pos.slice(), axes: o.axes.map(function (a) { return a.slice(); }), vz: o.vz }; });
+    var restore = function () { boxes.forEach(function (o, i) { o.pos = snap[i].pos; o.axes = snap[i].axes; o.vz = snap[i].vz; }); return false; };
+    var delta = Math.max(Math.max.apply(null, to.a.map(function (v, i) { return Math.abs(v - from.a[i]); })), Math.abs(to.a5 - from.a5) * 0.3, Math.abs(to.grip - from.grip) * 0.6);
+    var steps = clamp(Math.ceil(delta / 1.2), 1, 40);
+    for (var step = 1; step <= steps; step++) {
+      var v = lerpState(from, to, step / steps), bodies = robotSolids(v), closing = !held && v.grip < from.grip - 0.01;
+      if (bodies.some(function (b) { return PLAT_BODIES.some(function (w) { return contact(b, w); }); })) return restore();
+      var prospective = closing ? graspCandidate(v) : null;
+      if (prospective) { captureObject(prospective, v); to.a = v.a; to.a5 = v.a5; to.grip = v.grip; return true; }
+      bodies = bodies.concat(PLAT_BODIES);
+      if (held) {
+        placeHeld(v); var hs = boxSolid(held);
+        if (hs.p[2] - solidExtent(hs, [0, 0, 1]) < FLOOR_Z - 0.1) return restore();
+        if (bodies.some(function (b) { return b.part !== 'jaws' && contact(b, hs); })) return restore();
+        bodies.push(hs);
+      }
+      var solved = false, skip = boxes.map(function (o) { return closing && o !== held && withinFingers(o, v); });
+      for (var it = 0; it < 18; it++) {
+        var count = 0;
+        for (var oi = 0; oi < boxes.length; oi++) {
+          var o = boxes[oi]; if (o === held) continue;
+          var skipJaws = skip[oi];
+          for (var bi = 0; bi < bodies.length; bi++) {
+            var body = bodies[bi]; if (body.part === 'jaws' && skipJaws) continue;
+            var hit = contact(body, boxSolid(o)); if (hit) { count++; if (!pushContact(o, hit)) return restore(); }
+          }
+        }
+        for (var i = 0; i < boxes.length; i++) for (var j = i + 1; j < boxes.length; j++) {
+          var A = boxes[i], B = boxes[j]; if (A === held || B === held) continue;
+          var h2 = contact(boxSolid(A), boxSolid(B)); if (h2) { count++; if (!pushContact(B, h2)) return restore(); }
+        }
+        if (!count) { solved = true; break; }
+      }
+      if (!solved) return restore();
+    }
+    if (held) placeHeld(to);
+    return true;
+  }
+  // Follower einen Schritt in Richtung Ziel bewegen (mit Boxen und Ablagen)
+  function stepFollower(target, grip) {
+    if (!fstate || !propsOn) { fstate = { a: target.a.slice(), a5: target.a5, grip: grip }; prevGrip = grip; blocked = false; return fstate; }
+    if (held) { cap.minGrip = Math.min(cap.minGrip, grip); if (grip > Math.max(cap.minGrip, cap.grip) + 4) { held.vz = 0; held = null; cap = null; } }   // leicht öffnen = loslassen
+    var g = held ? Math.max(grip, cap.grip) : grip;
+    var to = { a: target.a.slice(), a5: target.a5, grip: g };
+    blocked = !resolveContacts(fstate, to);
+    if (!blocked) fstate = to;
+    else { var to2 = { a: fstate.a.slice(), a5: fstate.a5, grip: g }; if (resolveContacts(fstate, to2)) fstate = to2; }
+    prevGrip = grip;
+    return fstate;
+  }
+  // Schwerkraft: Boxen fallen auf Boden, Ablagen oder andere Boxen (wie updateObjects der 3D-Steuerung)
+  function boxGravity(dt) {
+    if (!propsOn) return false;
+    var moved = false;
+    boxes.forEach(function (o) {
+      if (o === held) return;
+      var half = objectExtent(o, [0, 0, 1]), prevBottom = o.pos[2] - half;
+      o.vz -= 9800 * dt; o.pos[2] += o.vz * dt;
+      var support = FLOOR_Z;
+      PLATFORMS.forEach(function (pl) { var top = pl.p[2] + pl.size[2] / 2;
+        if (Math.abs(o.pos[0] - pl.p[0]) < pl.size[0] / 2 && Math.abs(o.pos[1] - pl.p[1]) < pl.size[1] / 2 && prevBottom >= top - 0.5 && o.pos[2] - half <= top) support = Math.max(support, top); });
+      boxes.forEach(function (ot) { if (ot === o || ot === held) return;
+        var top = ot.pos[2] + objectExtent(ot, [0, 0, 1]);
+        var ov = Math.abs(o.pos[0] - ot.pos[0]) < objectExtent(o, [1, 0, 0]) + objectExtent(ot, [1, 0, 0]) && Math.abs(o.pos[1] - ot.pos[1]) < objectExtent(o, [0, 1, 0]) + objectExtent(ot, [0, 1, 0]);
+        if (ov && prevBottom >= top - 0.5 && o.pos[2] - half <= top) support = Math.max(support, top); });
+      if (o.pos[2] - half <= support) { if (Math.abs(o.pos[2] - (support + half)) > 0.01 || o.vz !== 0) moved = true; o.pos[2] = support + half; o.vz = 0; }
+      else moved = true;
+    });
+    return moved;
+  }
   placeBoxes();
   function cross3(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
 
@@ -251,14 +549,14 @@
     tip: new THREE.Mesh(new THREE.SphereGeometry(26, 20, 14), hmat()),
     wrist: new THREE.Mesh(new THREE.SphereGeometry(20, 20, 14), hmat()),
     grip: new THREE.Mesh(new THREE.SphereGeometry(17, 20, 14), hmat()),
-    roll: new THREE.Mesh(new THREE.SphereGeometry(14, 20, 14), hmat())
+    roll: new THREE.Mesh(new THREE.SphereGeometry(18, 20, 14), new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.9, depthTest: false }))   // schwarz: Greifer drehen
   };
   Object.keys(H).forEach(function (k) { H[k].userData.id = k; H[k].renderOrder = 10; scene.add(H[k]); });
   var HRAY = Object.keys(H).map(function (k) { return H[k]; });
 
   // ---------- Zustand ----------
   var DEFAULT = { pan: 0, tilt: 8, ext: 170, wrist: 0, roll: 0, grip: 40 };
-  var variant = 1;
+  var variant = 2;   // Variante 2 ist beim Öffnen ausgewählt
   var s = Object.assign({}, DEFAULT);
   var ids = ['pan', 'tilt', 'ext', 'wrist', 'roll', 'grip'];
   var el = {}; ids.forEach(function (i) { el[i] = document.getElementById(i); });
@@ -334,54 +632,10 @@
       lift -= low; floorHit = true;
       sol = solve(s, tcDeg, dt, lift); F = fk(sol.a); p = F.pts;
     }
-    seg(fl1, p[0], p[1]); seg(fl2, p[1], p[2]);
-    for (var i = 0; i < 3; i++) { cylAt(fJ[i], p[i], F.n); cylAt(fCap[i], p[i], F.n); }
-    var base = add(p[2], mul(F.d[2], 91 * SF));
-    seg(fTool, p[2], base);
-    var f5 = sol.a5 * RAD, fnu = add(mul(F.nu, Math.cos(f5)), mul(F.n, Math.sin(f5)));
-    seg(jawFixed, add(base, mul(fnu, -12 * SF)), add(p[2], add(mul(F.d[2], L3), mul(fnu, -12 * SF))));
-    var open = s.grip / 100 * 60 * RAD;
-    var mdir = add(mul(F.d[2], Math.cos(open)), mul(fnu, Math.sin(open)));
-    var mA = add(base, mul(fnu, 12 * SF));
-    seg(jawMove, mA, add(mA, mul(mdir, L3 - 91 * SF)));
-
-    // Boxen greifen: Greifer fast zu (unter 25 %) und Box zwischen den Backen -> Box hängt am Greifer, ab 55 % lässt er los
-    var tcp = add(base, mul(F.d[2], (L3 - 91 * SF) * 0.5)); lastTcp = tcp; var e1 = F.d[2], e2 = fnu, e3 = cross3(e1, e2);
-    boxes.forEach(function (b) {
-      var dl = [b.pos[0] - tcp[0], b.pos[1] - tcp[1], b.pos[2] - tcp[2]];
-      if (!b.held && s.grip <= 25 && Math.hypot(dl[0], dl[1], dl[2]) < 120) {
-        var anyHeld = boxes.some(function (o) { return o.held; });
-        if (!anyHeld) { b.held = true; b.off = [dot(dl, e1), dot(dl, e2), dot(dl, e3)]; b.vz = 0; }
-      } else if (b.held && s.grip >= 55) { b.held = false; b.vz = 0; }
-      if (b.held) {
-        b.pos = add(tcp, add(mul(e1, b.off[0]), add(mul(e2, b.off[1]), mul(e3, b.off[2]))));
-        b.pos[2] = Math.max(b.pos[2], FLOOR_Z + BOX / 2);
-      }
-    });
-    boxes.forEach(function (b) {
-      var m = b.mesh.material;
-      if (b.held) { m.color.setHex(0x2fd16b); m.emissive.setHex(0x1f9d4c); } else { m.color.setHex(b.col); m.emissive.setHex(0x000000); }
-    });
-    document.getElementById('grab').style.display = boxes.some(function (b) { return b.held; }) ? 'block' : 'none';
-    placeBoxes();
-
-    var msgs = [];
-    if (ctrlFloor) msgs.push('Mini-Controller: Boden erreicht');
-    if (floorHit) msgs.push('Boden erreicht – der Arm kann nicht weiter nach unten');
-    if (sol.reach) msgs.push('Auszug außerhalb der Reichweite des Arms');
-    if (sol.joint) msgs.push('Gelenkgrenze erreicht');
-    var hit = false;
-    for (var q = 1; q < 4; q++) { var onWall = Math.abs(p[q][1] - FOLLOWER[1]) < 75 * SF + 10;
-      if ((p[q][0] < WALL_X * SF + 12 && onWall)) hit = true; }
-    if (hit) msgs.push('Arm würde Wand oder Boden berühren');
-    warn.textContent = msgs.join(' · '); warn.style.display = msgs.length ? 'block' : 'none';
-
-    var names = ['Achse 1 · Basis', 'Achse 2 · Schulter', 'Achse 3 · Ellbogen', 'Achse 4 · Handgelenk'];
-    var html = '';
-    for (var k = 0; k < 4; k++) html += '<tr><td>' + names[k] + '</td><td>' + rawOf(k, sol.a[k]) + '</td><td>' + sol.a[k].toFixed(0) + '°</td></tr>';
-    html += '<tr><td>Achse 5 · Greifer drehen</td><td>' + rawOf(4, sol.a5) + '</td><td>' + sol.a5.toFixed(0) + '°</td></tr>';
-    html += '<tr><td>Greifer</td><td>' + Math.round(s.grip) + ' %</td><td></td></tr>';
-    axesTable.innerHTML = html;
+    // Ziel für den Follower: er fährt im Loop mit Gelenkgeschwindigkeiten wie in der 3D-Steuerung hinterher
+    fTarget = { a: sol.a.slice(), a5: sol.a5, grip: s.grip };
+    fFlags = { ctrlFloor: ctrlFloor, floorHit: floorHit, reach: sol.reach, joint: sol.joint };
+    followerFrame(0);
 
     ids.forEach(function (k) { if (document.activeElement !== el[k]) el[k].value = s[k]; });
     document.getElementById('vPan').textContent = Math.round(s.pan) + '°';
@@ -392,10 +646,58 @@
     document.getElementById('vGrip').textContent = Math.round(s.grip) + ' %';
   }
 
-  ids.forEach(function (k) { el[k].addEventListener('input', function () { stopDemo(); s[k] = parseFloat(el[k].value); render(); }); });
-  document.getElementById('reset').addEventListener('click', function () { stopDemo(); Object.assign(s, DEFAULT); lastTurn = 0; resetBoxes(); render(); });
+  // ---------- Follower nachfahren (Latenz wie in robot-control-3d.html) ----------
+  // Gelenkgeschwindigkeit in °/s (JOINT_SPEED der 3D-Steuerung bei 50 %), Spitze max. 0,22 mm/ms (hier x3).
+  var JOINT_DPS = [25, 25, 25, 18], ROLL_DPS = 30, GRIP_PPS = 60, TIP_MMS = 220 * SF;
+  var fTarget = null, fFlags = {}, lastWarn = '', lastTable = '';
+  function towards(v, t, maxStep) { return v + clamp(t - v, -maxStep, maxStep); }
+  function followerFrame(dt) {
+    if (!fTarget) return;
+    var next;
+    if (!fstate) next = { a: fTarget.a.slice(), a5: fTarget.a5, grip: fTarget.grip };
+    else {
+      var cur = fstate, f = 1;
+      for (var i = 0; i < 4; i++) { var dd = Math.abs(fTarget.a[i] - cur.a[i]); if (dd > 1e-6) f = Math.min(f, dt * JOINT_DPS[i] / dd); }
+      var tipA = fk(cur.a).pts[3], tipB = fk(fTarget.a).pts[3], td = Math.hypot(tipB[0] - tipA[0], tipB[1] - tipA[1], tipB[2] - tipA[2]);
+      if (td > 1e-6) f = Math.min(f, dt * TIP_MMS / td);
+      next = { a: cur.a.map(function (v, i) { return v + (fTarget.a[i] - v) * f; }),
+               a5: towards(cur.a5, fTarget.a5, ROLL_DPS * dt), grip: towards(cur.grip, fTarget.grip, GRIP_PPS * dt) };
+      if (dt === 0) next = { a: cur.a.slice(), a5: cur.a5, grip: cur.grip };
+    }
+    var st = stepFollower(next, next.grip);
+    var F = fk(st.a), p = F.pts;
+    var gf = followerModel(F, st.a5, st.grip);
+    lastTcp = gf.anchor;
+    var grabEl = document.getElementById('grab');
+    grabEl.textContent = held ? '✓ Box ' + held.name + ' gegriffen' : '';
+    grabEl.style.display = held ? 'block' : 'none';
+    placeBoxes();
 
-  document.getElementById('seeThrough').addEventListener('change', function (e) { BROWN.opacity = e.target.checked ? 0.25 : 1; BROWN.depthWrite = !e.target.checked; BROWN.needsUpdate = true; });
+    var msgs = [];
+    if (fFlags.ctrlFloor) msgs.push('Mini-Controller: Boden erreicht');
+    if (fFlags.floorHit) msgs.push('Boden erreicht – der Arm kann nicht weiter nach unten');
+    if (fFlags.reach) msgs.push('Auszug außerhalb der Reichweite des Arms');
+    if (fFlags.joint) msgs.push('Gelenkgrenze erreicht');
+    var hit = false;
+    for (var q = 1; q < 4; q++) { var onWall = Math.abs(p[q][1] - FOLLOWER[1]) < 75 * SF + 10;
+      if ((p[q][0] < WALL_X * SF + 12 && onWall)) hit = true; }
+    if (hit) msgs.push('Arm würde Wand oder Boden berühren');
+    if (blocked) msgs.push('Arm blockiert – Box oder Ablage im Weg');
+    var wt = msgs.join(' · ');
+    if (wt !== lastWarn) { lastWarn = wt; warn.textContent = wt; warn.style.display = msgs.length ? 'block' : 'none'; }
+
+    var names = ['Achse 1 · Basis', 'Achse 2 · Schulter', 'Achse 3 · Ellbogen', 'Achse 4 · Handgelenk'];
+    var html = '';
+    for (var k = 0; k < 4; k++) html += '<tr><td>' + names[k] + '</td><td>' + rawOf(k, st.a[k]) + '</td><td>' + st.a[k].toFixed(0) + '°</td></tr>';
+    html += '<tr><td>Achse 5 · Greifer drehen</td><td>' + rawOf(4, st.a5) + '</td><td>' + st.a5.toFixed(0) + '°</td></tr>';
+    html += '<tr><td>Greifer</td><td>' + Math.round(st.grip) + ' %</td><td></td></tr>';
+    if (html !== lastTable) { lastTable = html; axesTable.innerHTML = html; }
+  }
+
+  ids.forEach(function (k) { el[k].addEventListener('input', function () { stopDemo(); s[k] = parseFloat(el[k].value); render(); }); });
+  document.getElementById('reset').addEventListener('click', function () { stopDemo(); Object.assign(s, DEFAULT); if (variant === 2) s.grip = 50; lastTurn = 0; fstate = null; resetBoxes(); render(); });
+
+  document.getElementById('seeThrough').addEventListener('change', function (e) { BROWN.opacity = e.target.checked ? 0.45 : 1; BROWN.depthWrite = !e.target.checked; BROWN.needsUpdate = true; });
   var key = { mode: null, lastUp: -1000 };
   var gripBtns = document.getElementById('gripBtns');
   document.getElementById('variant').addEventListener('change', function (e) {
@@ -526,17 +828,25 @@
 
   // ---------- Draufsicht (nur Zusatzfenster; durchsichtiger Follower, zoomt an Boxen heran) ----------
   var inEl = document.createElement('div');
-  inEl.style.cssText = 'position:absolute;right:12px;top:12px;border:2px solid #444;pointer-events:none;box-sizing:border-box';
-  inEl.innerHTML = '<div style="position:absolute;left:6px;top:4px;font:600 12px system-ui;color:#333">Draufsicht Follower</div>';
+  var INSET_R = 52, INSET_T = 12, INSET_GAP = 10;
+  function insetSize() { var W = host.clientWidth, Hh = host.clientHeight; return Math.max(80, Math.round(Math.min(260, (Hh - 2 * INSET_T - INSET_GAP) / 2, W * 0.34))); }
+  var INSET_CSS = 'position:absolute;right:' + INSET_R + 'px;border:1px solid var(--line);border-radius:8px;pointer-events:none;box-sizing:border-box;overflow:hidden';
+  var INSET_LBL = '<div style="position:absolute;left:8px;top:6px;font:600 11px -apple-system,system-ui,sans-serif;color:var(--muted)">';
+  inEl.style.cssText = INSET_CSS + ';top:' + INSET_T + 'px';
+  inEl.innerHTML = INSET_LBL + 'Draufsicht Follower</div>';
   host.appendChild(inEl);
+  var sideEl = document.createElement('div');
+  sideEl.style.cssText = INSET_CSS;
+  sideEl.innerHTML = INSET_LBL + 'Seitenansicht Follower</div>';
+  host.appendChild(sideEl);
   var topCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 6000);
   var inV = { cx: -FOLLOWER[1], cz: -450, half: 1000 };
-  var tMats = [BLACK, DARK, GREY];
+  var tMats = [BLACK, DARK, GREY, F_MAIN, F_LIGHT, F_DARK, F_METAL, F_CAM];
   function drawInset() {
-    var W = host.clientWidth, Hh = host.clientHeight, sz = Math.round(Math.min(340, Math.min(W, Hh) * 0.42));
+    var W = host.clientWidth, Hh = host.clientHeight, sz = insetSize();
     inEl.style.width = inEl.style.height = sz + 'px';
     var tc = lastTcp, best = 1e9, bp = null;
-    boxes.forEach(function (b) { var d = Math.hypot(b.pos[0] - tc[0], b.pos[1] - tc[1], b.pos[2] - tc[2]); if (d < best) { best = d; bp = b.pos; } });
+    if (propsOn) boxes.forEach(function (b) { var d = Math.hypot(b.pos[0] - tc[0], b.pos[1] - tc[1], b.pos[2] - tc[2]); if (d < best) { best = d; bp = b.pos; } });
     var k = clamp(1 - (best - 100) / 600, 0, 1);
     var tx = -FOLLOWER[1], tz = -450, th = 1000;
     if (bp) { tx += (-bp[1] - tx) * k; tz += (-bp[0] - tz) * k; th += (260 - th) * k; }
@@ -545,21 +855,63 @@
     topCam.position.set(inV.cx, 3000, inV.cz); topCam.up.set(0, 0, 1); topCam.lookAt(inV.cx, 0, inV.cz);
     tMats.forEach(function (m) { m.transparent = true; m.opacity = 0.35; m.depthWrite = false; });
     labelList.forEach(function (l) { l.visible = false; });
-    renderer.setScissorTest(true); renderer.setViewport(W - sz - 12, Hh - sz - 12, sz, sz); renderer.setScissor(W - sz - 12, Hh - sz - 12, sz, sz);
+    renderer.setScissorTest(true); renderer.setViewport(W - sz - INSET_R, Hh - sz - INSET_T, sz, sz); renderer.setScissor(W - sz - INSET_R, Hh - sz - INSET_T, sz, sz);
     renderer.render(scene, topCam);
     renderer.setScissorTest(false); renderer.setViewport(0, 0, W, Hh);
     tMats.forEach(function (m) { m.transparent = false; m.opacity = 1; m.depthWrite = true; });
     labelList.forEach(function (l) { l.visible = true; });
   }
 
+  // ---------- Seitenansicht (wie sideCamera der 3D-Steuerung: von der Seite, zoomt beim Absenken zum Greifer) ----------
+  var sideCam = new THREE.PerspectiveCamera(50, 1, 20, 20000);
+  var SIDE_FIXED = { focus: [140 * SF, FOLLOWER[1], FOLLOWER[2] - 120 * SF], elevation: 0.12, distance: 720 * SF };
+  var sideV = { focus: SIDE_FIXED.focus.slice(), distance: SIDE_FIXED.distance, elevation: SIDE_FIXED.elevation }, sideZoom = 0, sideLastZ = null;
+  function ctrlObjects() { return [ctrlWall, ctrlFoot, ctrlLabel, cBase, cShoulder, cShoulderCap, cSleeve, cRod, cWristJ, cWristCap, cBody, cJawFixed, cJawMove, cBall].concat(gObjs, HRAY); }
+  function drawSideInset() {
+    var W = host.clientWidth, Hh = host.clientHeight, sz = insetSize(), top = INSET_T + sz + INSET_GAP;
+    sideEl.style.width = sideEl.style.height = sz + 'px'; sideEl.style.top = top + 'px';
+    var a = lastTcp;
+    if (sideLastZ !== null) {
+      var vz = a[2] - sideLastZ;
+      if (vz < -0.5 && a[2] < FLOOR_Z + 190 * SF) sideZoom = Math.min(1, sideZoom + 0.04);
+      else if ((vz > 0.5 && a[2] > FLOOR_Z + 150 * SF) || a[2] > FLOOR_Z + 220 * SF) sideZoom = Math.max(0, sideZoom - 0.04);
+    }
+    sideLastZ = a[2];
+    var t = sideZoom * sideZoom * (3 - 2 * sideZoom);
+    var fTgt = mix(SIDE_FIXED.focus, [a[0], FOLLOWER[1], Math.max(FLOOR_Z + 75 * SF, a[2])], t);
+    sideV.focus = mix(sideV.focus, fTgt, 0.12);
+    sideV.distance += (SIDE_FIXED.distance + (340 * SF - SIDE_FIXED.distance) * t - sideV.distance) * 0.12;
+    var el2 = SIDE_FIXED.elevation + 0.08 * t;
+    var eye = add(sideV.focus, [0, -Math.cos(el2) * sideV.distance, Math.sin(el2) * sideV.distance]);   // Kamera rechts vom Arm (von der Wand aus gesehen)
+    sideCam.position.copy(T(eye)); sideCam.up.set(0, 1, 0); sideCam.lookAt(T(sideV.focus));
+    var hide = ctrlObjects(), was = hide.map(function (o) { return o.visible; });
+    hide.forEach(function (o) { o.visible = false; });
+    labelList.forEach(function (l) { l._v = l.visible; l.visible = false; });
+    renderer.setScissorTest(true); renderer.setViewport(W - sz - INSET_R, Hh - top - sz, sz, sz); renderer.setScissor(W - sz - INSET_R, Hh - top - sz, sz, sz);
+    renderer.render(scene, sideCam);
+    renderer.setScissorTest(false); renderer.setViewport(0, 0, W, Hh);
+    hide.forEach(function (o, i) { o.visible = was[i]; });
+    labelList.forEach(function (l) { l.visible = l._v; });
+  }
+
+  // ---------- Durchblick von hinten (rearTransparency der 3D-Steuerung) ----------
+  // Steht die Kamera hinter der Wand oder schaut sie steil von oben, werden die Arme durchsichtig.
+  var ghostMats = [BLACK, DARK, GREY, F_MAIN, F_LIGHT, F_DARK, F_METAL, F_CAM];
+  function rearTransparency() {
+    var e = D(camera.position), dx = e[0] - FOLLOWER[0], dy = e[1] - FOLLOWER[1], h = Math.hypot(dx, dy) || 1;
+    var behindWall = clamp((-70 * SF - e[0]) / (140 * SF), 0, 1);      // Kamera hinter der Wand (wie in der 3D-Steuerung)
+    var fromBehind = clamp((-dx / h - 0.45) / 0.35, 0, 1);             // und Blick wirklich von hinten auf den Arm
+    return Math.min(0.7, Math.max(behindWall * fromBehind, clamp((Math.cos(cam.phi) - 0.5) / 0.4, 0, 1)));
+  }
+  function applyGhost(g) {
+    var fade = Math.min(0.8, g * 1.15), on = fade > 0.01;
+    ghostMats.forEach(function (m) { m.transparent = on; m.opacity = on ? 1 - fade : 1; m.depthWrite = !on; });
+  }
+
   function loop(now) {
     var dts = Math.min((now - lastNow) / 1000, 0.05); lastNow = now;
-    var moved = false;
-    boxes.forEach(function (b) {
-      var fl = FLOOR_Z + BOX / 2;
-      if (!b.held && b.pos[2] > fl + 0.01) { b.vz -= 4000 * dts; b.pos[2] = Math.max(b.pos[2] + b.vz * dts, fl); if (b.pos[2] <= fl) b.vz = 0; moved = true; }
-    });
-    if (moved) placeBoxes();
+    if (boxGravity(dts)) placeBoxes();
+    followerFrame(dts);
     if (variant === 2) {
       var tgt = key.mode === 'close' ? 0 : key.mode === 'open' ? 100 : s.grip, rate = 170 * dts;
       if (key.mode && Math.abs(s.grip - tgt) > 0.01) { s.grip = s.grip + clamp(tgt - s.grip, -rate, rate); render(); }
@@ -570,11 +922,56 @@
       s.ext = 170 + 55 * Math.sin(t * 1.1); s.wrist = 10 + 40 * Math.sin(t * 1.3); s.roll = 60 * Math.sin(t * 0.8); if (variant === 1) s.grip = 50 + 50 * Math.sin(t * 1.7);
       render();
     }
-    H.tip.material.opacity = H.wrist.material.opacity = H.grip.material.opacity = H.roll.material.opacity = 0.55;
-    if (drag) H[drag.id].material.opacity = 0.9;
-    placeCamera(); renderer.render(scene, camera); drawInset();
+    H.tip.material.opacity = H.wrist.material.opacity = H.grip.material.opacity = 0.55; H.roll.material.opacity = 0.9;
+    if (drag) H[drag.id].material.opacity = drag.id === 'roll' ? 1 : 0.9;
+    placeCamera(); applyGhost(rearTransparency()); renderer.render(scene, camera); drawInset(); drawSideInset();
     requestAnimationFrame(loop);
   }
+  // ---------- Hell / Dunkel (gleiche Einstellung wie Robot Studio 3D) ----------
+  // hell = schwarze Arme, dunkel = weiße Arme (wie in Robot Studio 3D)
+  function applyTheme() {
+    var dark = document.documentElement.dataset.theme === 'dark';
+    // Dark Mode: gedämpftes, leicht gräuliches Weiß (reines Weiß strahlt auf Schwarz zu stark)
+    BLACK.color.setHex(dark ? 0xc4c4c4 : 0x262626);
+    DARK.color.setHex(dark ? 0xa8a8a8 : 0x3a3a3a);
+    GREY.color.setHex(dark ? 0x6e6e6e : 0x8f8f8f);
+    WHITEM.color.setHex(dark ? 0xc4c4c4 : 0x1c1c1c);
+    BALLM.color.setHex(dark ? 0x8a8a8a : 0xf0f0ea);
+    H.roll.material.color.setHex(dark ? 0xc8c8c8 : 0x111111);
+    F_MAIN.color.setHex(dark ? 0xc4c4c4 : 0x343434);
+    F_LIGHT.color.setHex(dark ? 0xb6b6b6 : 0x484848);
+    F_DARK.color.setHex(dark ? 0x6e6e6e : 0x7d7d7d);
+    F_METAL.color.setHex(dark ? 0x9a9a9a : 0xafafaf);
+    amb.intensity = dark ? 0.7 : 0.55; sun.intensity = dark ? 0.35 : 0.5;   // wie 3D-Steuerung: im Dark Mode weichere Schatten
+    BROWN.color.setHex(dark ? 0x3e3e3e : 0xd4d4d4);
+    gridMinor.color.setHex(dark ? 0x272727 : 0xdadada);
+    gridMajor.color.setHex(dark ? 0x454545 : 0xc0c0c0);
+    labelList.forEach(function (l) { l.userData.paint(dark ? '#cfcfcf' : '#222222'); });
+    PLAT_M.color.setHex(dark ? 0x5a5a5a : 0xafafaf); PLAT_TOP.color.setHex(dark ? 0x707070 : 0xd2d2d2);
+  }
+  // Seitenleiste ein-/ausklappen (wie Robot Studio 3D)
+  var tgl = document.getElementById('toggle-controls'), wrapEl = document.getElementById('wrap'), aside = document.getElementById('controls');
+  var propsBtn = document.getElementById('toggle-props');
+  propsBtn.addEventListener('click', function () {
+    propsOn = !propsOn; held = null; cap = null; fstate = null;
+    propsBtn.textContent = propsOn ? 'Blöcke: ein' : 'Blöcke: aus'; propsBtn.setAttribute('aria-pressed', String(propsOn));
+    placeBoxes(); render();
+  });
+  document.getElementById('reset-blocks').addEventListener('click', function () { fstate = null; resetBoxes(); render(); });
+  tgl.addEventListener('click', function () {
+    var open = wrapEl.classList.toggle('controls-open');
+    aside.inert = !open; tgl.textContent = open ? '›' : '‹';
+    tgl.setAttribute('aria-expanded', String(open)); tgl.title = open ? 'Steuerung einklappen' : 'Steuerung ausklappen';
+  });
+  document.getElementById('theme').addEventListener('click', function () {
+    var r = document.documentElement, t = r.dataset.theme === 'dark' ? 'light' : 'dark';
+    r.dataset.theme = t; try { localStorage.setItem('robot-theme', t); } catch (e) {}
+    applyTheme();
+  });
+  applyTheme();
+
+  document.getElementById('variant').value = '2';
+  document.getElementById('variant').dispatchEvent(new Event('change'));
   resize(); render(); requestAnimationFrame(loop);
 })();
 </script>
