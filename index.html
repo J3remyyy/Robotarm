@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Robot Studio · Übersicht</title>
+<script>(()=>{let t=null;try{t=localStorage.getItem("robot-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t})()</script>
+<style>
+:root{--bg:#f2f2f2;--card:#fbfbfb;--line:#dbdbdb;--ink:#222;--muted:#686868;--orange:#ed7e2a;--stage:radial-gradient(ellipse at 50% 40%,#fff 0,#ededed 80%)}
+:root[data-theme=dark]{--bg:#161616;--card:#1e1e1e;--line:#333;--ink:#ececec;--muted:#9a9a9a;--stage:radial-gradient(ellipse at 50% 40%,#2a2a2a 0,#1a1a1a 80%)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--ink);font:14px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;flex-direction:column}
+header{height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;border-bottom:1px solid var(--line);background:var(--card)}
+.brand{display:flex;align-items:center;gap:13px}
+.logo{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;font-size:24px;color:var(--orange)}
+h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.5px}
+.sub{color:var(--muted);font-size:10px;letter-spacing:1.1px;margin-top:4px;text-transform:uppercase}
+#theme{font:inherit;font-size:12px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:7px;padding:8px 12px;cursor:pointer}
+#theme:hover{border-color:var(--orange)}
+main{flex:1;width:100%;max-width:1100px;margin:0 auto;padding:64px 30px 48px}
+.tag{font:10px monospace;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+h2{font-size:34px;font-weight:400;letter-spacing:-1.2px;margin:10px 0 12px}
+.lead{color:var(--muted);line-height:1.6;max-width:560px;margin:0 0 44px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px}
+a.card{display:flex;flex-direction:column;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:border-color .15s,transform .15s,box-shadow .15s}
+a.card:hover{border-color:var(--orange);transform:translateY(-2px);box-shadow:0 10px 30px #0000001a}
+a.card:focus-visible{outline:3px solid #ed7e2a88;outline-offset:3px}
+.visual{height:190px;background:var(--stage);border-bottom:1px solid var(--line);display:grid;place-items:center}
+.visual svg{width:72%;height:80%;overflow:visible}
+.visual .arm{stroke:var(--ink);stroke-width:9;stroke-linecap:round;fill:none}
+.visual .rod{stroke:var(--muted);stroke-width:5;stroke-linecap:round}
+.visual .j{fill:var(--card);stroke:var(--ink);stroke-width:3}
+.visual .h{fill:var(--orange);opacity:.7}
+.visual .wall{fill:var(--line)}
+.body{padding:20px 22px 22px;display:flex;flex-direction:column;gap:8px;flex:1}
+.body h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-.4px}
+.body p{margin:0;color:var(--muted);line-height:1.55;font-size:13px}
+.go{margin-top:auto;padding-top:12px;font-size:13px;color:var(--orange);font-weight:600}
+footer{padding:18px 30px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+@media(max-width:620px){header{padding:0 16px}main{padding:36px 16px}h2{font-size:26px}.cards{grid-template-columns:1fr}footer{padding:16px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">⌁</div><div><h1>Robot Studio</h1><div class="sub">Interface Design · Woche 7</div></div></div>
+  <button id="theme" type="button">Hell / Dunkel</button>
+</header>
+<main>
+  <div class="tag">Übersicht</div>
+  <h2>Roboterarm steuern</h2>
+  <p class="lead">Zwei Wege, den Arm zu bewegen: direkt in der 3D-Szene oder über einen kleinen Mini-Controller, dessen Bewegung der große Arm nachmacht.</p>
+  <div class="cards">
+    <a class="card" href="robot-control-3d.html">
+      <div class="visual" aria-hidden="true">
+        <svg viewBox="0 0 220 140">
+          <rect class="wall" x="8" y="20" width="10" height="110" rx="2"/>
+          <polyline class="arm" points="22,95 80,48 150,70 190,40"/>
+          <circle class="j" cx="22" cy="95" r="9"/><circle class="j" cx="80" cy="48" r="8"/><circle class="j" cx="150" cy="70" r="7"/>
+          <circle class="h" cx="190" cy="40" r="11"/>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="tag">01 · Robot Studio 3D</div>
+        <h3>3D-Steuerung</h3>
+        <p>Den Greifer im Raum ziehen, Kameraansichten wechseln, Blöcke greifen und den echten Arm über USB verbinden.</p>
+        <span class="go">Öffnen →</span>
+      </div>
+    </a>
+    <a class="card" href="mini-controller-simulation.html">
+      <div class="visual" aria-hidden="true">
+        <svg viewBox="0 0 220 140">
+          <rect class="wall" x="8" y="60" width="8" height="50" rx="2"/>
+          <line class="rod" x1="20" y1="88" x2="62" y2="72"/>
+          <polyline class="arm" points="20,88 42,80" style="stroke-width:7"/>
+          <circle class="j" cx="20" cy="88" r="6"/><circle class="h" cx="64" cy="71" r="8"/>
+          <rect class="wall" x="110" y="10" width="10" height="120" rx="2"/>
+          <polyline class="arm" points="124,60 160,36 196,58 208,90"/>
+          <circle class="j" cx="124" cy="60" r="8"/><circle class="j" cx="160" cy="36" r="7"/><circle class="j" cx="196" cy="58" r="6"/>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="tag">02 · Simulation</div>
+        <h3>Mini-Controller → Roboterarm</h3>
+        <p>Einen kleinen Arm mit ausziehbarer Stange bewegen – der dreimal so große Follower folgt. Mit Kalibrierwerten für die echten Achsen.</p>
+        <span class="go">Öffnen →</span>
+      </div>
+    </a>
+  </div>
+</main>
+<footer>HfG · 2. Semester · Interface Design</footer>
+<script>
+document.getElementById('theme').addEventListener('click',()=>{
+  const r=document.documentElement,t=r.dataset.theme==='dark'?'light':'dark';
+  r.dataset.theme=t;try{localStorage.setItem('robot-theme',t)}catch(e){}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini-Controller → Roboterarm (Simulation)</title>
+<style>
+  :root { color-scheme: light; --bg:#f2f2ee; --ink:#1a1a1a; --mute:#6a6a6a; --line:#d8d8d2; --acc:#e8742a; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  #wrap { display:flex; height:100%; }
+  #view { flex:1; position:relative; min-width:0; touch-action:none; }
+  canvas { display:block; width:100%; height:100%; }
+  #hint { position:absolute; left:14px; top:12px; font-size:12.5px; color:var(--mute); line-height:1.5;
+    background:rgba(255,255,255,.75); padding:8px 12px; border-radius:10px; max-width:310px; }
+  #hint b { color:var(--ink); }
+  #grab { position:absolute; left:40%; top:52px; transform:translateX(-50%); background:#3f9a63; color:#fff; font-size:14px; font-weight:600; padding:6px 16px; border-radius:999px; display:none; box-shadow:0 4px 14px #0003; }
+  #warn { position:absolute; left:40%; max-width:300px; top:12px; transform:translateX(-50%); background:#fff1e6;
+    border:1px solid var(--acc); color:#8a3a12; font-size:13px; padding:5px 14px; border-radius:999px; display:none; }
+  aside { width:300px; background:#fff; border-left:1px solid var(--line); padding:16px; overflow:auto; }
+  aside h2 { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); margin:0 0 8px; font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:13px; font-variant-numeric:tabular-nums; }
+  td { padding:5px 0; border-bottom:1px solid #eee; }
+  td:nth-child(2), td:nth-child(3) { text-align:right; }
+  td:nth-child(3) { color:var(--mute); width:64px; }
+  .sec { margin-bottom:18px; }
+  label { display:block; font-size:12px; color:var(--mute); margin-top:8px; }
+  label b { float:right; color:var(--ink); font-weight:600; }
+  input[type=range] { width:100%; accent-color:var(--acc); margin:3px 0 0; }
+  .btns { display:flex; gap:8px; margin-top:4px; }
+  button { color:#1a1a1a; font:inherit; font-size:13px; padding:6px 12px; border-radius:8px; border:1px solid var(--line); background:#f7f7f4; cursor:pointer; }
+  button:hover { border-color:var(--acc); }
+  select, option { color:#1a1a1a; }
+  option { background:#fff; }
+  select { width:100%; font:inherit; font-size:13px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:#f7f7f4; }
+  small { color:var(--mute); font-size:11px; line-height:1.45; display:block; margin-top:8px; }
+  @media (max-width:760px) { #wrap { flex-direction:column; } aside { width:100%; max-height:44%; border-left:0; border-top:1px solid var(--line); } }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="view">
+    <a href="index.html" style="position:absolute;left:14px;bottom:14px;z-index:5;font-size:13px;color:#1a1a1a;text-decoration:none;background:rgba(255,255,255,.85);border:1px solid #d8d8d2;padding:6px 12px;border-radius:999px">← Übersicht</a>
+    <div id="hint"><b>Mini-Controller greifen:</b> orange Punkte ziehen.<br>
+      <b>Stangenende</b> = Drehung, Neigung und Auszug · <b>Handgelenk</b> = Neigung · <b>Greifer drehen</b> = Punkt um die Achse ziehen · <b>Greifer</b> = auf/zu.<br>
+      Boxen am Boden: Greifer fast schließen (unter ca. 25 %) = aufnehmen, über 55 % öffnen = loslassen.<br>Zwei Finger = Blickwinkel ändern · Pinch = Zoom · Shift + zwei Finger = verschieben. Leere Fläche mit der Maus ziehen = Kamera verschieben.</div>
+    <div id="warn"></div><div id="grab">✓ Box gegriffen</div>
+  </div>
+  <aside>
+    <div class="sec">
+      <label style="margin:0 0 10px;color:#1a1a1a"><input type="checkbox" id="seeThrough" checked style="vertical-align:middle;margin-right:6px">Wände durchsichtig</label>
+      <h2>Variante</h2>
+      <select id="variant"><option value="1">Variante 1 · Mini-Greifer</option><option value="2">Variante 2 · Kugel + Mini-Greifer am Boden</option></select>
+    </div>
+    <div class="sec">
+      <h2>Werte für den echten Arm</h2>
+      <table id="axes"></table>
+      <small>Ausgabe wie über USB (0–4095), berechnet mit euren Kalibrierwerten. Achse 5 (Werkzeug-Rotation) bleibt in Mittelstellung.</small>
+    </div>
+    <div class="sec">
+      <h2>Mini-Controller (Regler)</h2>
+      <label>Drehung <b id="vPan"></b><input id="pan" type="range" min="-90" max="90" step="1"></label>
+      <label>Neigung <b id="vTilt"></b><input id="tilt" type="range" min="-90" max="90" step="1"></label>
+      <label>Auszug <b id="vExt"></b><input id="ext" type="range" min="100" max="250" step="1"></label>
+      <label>Handgelenk <b id="vWrist"></b><input id="wrist" type="range" min="-100" max="100" step="1"></label>
+      <label>Greifer drehen (Achse 5) <b id="vRoll"></b><input id="roll" type="range" min="-160" max="160" step="1"></label>
+      <label>Greifer <b id="vGrip"></b><input id="grip" type="range" min="0" max="100" step="1"></label>
+      <div id="gripBtns" style="display:none"><div class="btns"><button id="bClose">Schließen (Leertaste)</button><button id="bOpen">Öffnen (2× Leertaste)</button></div><small>Variante 2: Mit einer Hand die Kugel am Mini-Controller greifen. Mit der anderen am Mini-Greifer am Boden: Leertaste halten = schließen, Leertaste zweimal (beim zweiten Mal halten) = öffnen. Loslassen = er bleibt in der Stellung, in der ihr aufgehört habt. Den orangen Punkt am Mini-Greifer ziehen = drehen. Vorher einmal auf die Seite klicken, damit die Tasten ankommen.</small></div>
+      <div class="btns"><button id="demo">▶ Demo</button><button id="reset">Zurücksetzen</button></div>
+    </div>
+    <small>Follower wie in eurer Datei (Woche 7), aber 3-mal so groß wie der Mini-Controller: Wandmontage, Basisachse zeigt vom Brett weg, Gliedlängen 115 / 135 / 165 mm, Servo-Bereiche aus „Roboter Achsen.txt“. Der Mini-Controller hängt an derselben Wand. Er ist wie der Follower aufgebaut, nur sitzt zwischen Gelenk 2 und Gelenk 4 eine verschiebbare Stange in 1/3 der Größe des Followers (Auszug 100–245 mm). Die Länge der Hülse und Stange ist ein Entwurf.</small>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  var RAD = Math.PI / 180, DEG = 180 / Math.PI;
+  var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
+
+  // ---------- Welt wie in eurer Datei: X weg von der Wand, Y nach links (von der Wand aus gesehen), Z hoch, mm ----------
+  function T(p) { return new THREE.Vector3(-p[1], p[2], -p[0]); }
+  function D(v) { return [-v.z, -v.x, v.y]; }
+  function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+  function mul(a, s) { return [a[0] * s, a[1] * s, a[2] * s]; }
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+
+  // ---------- Follower: Daten aus "Roboter Achsen.txt" ----------
+  var AXR = [[800, 3450], [900, 3200], [1000, 3050], [900, 3200], [180, 3900]];
+  var BOUNDS = AXR.map(function (r) { return [(r[0] - 2048) * 360 / 4096, (r[1] - 2048) * 360 / 4096]; });
+  function rawOf(i, a) {
+    var r = AXR[i];
+    return Math.round(clamp((2048 + a * 4096 / 360 - r[0]) / (r[1] - r[0]) * 4095, 0, 4095));
+  }
+  var SF = 3;                                   // Follower ist 3x so groß wie der Mini-Controller
+  var L1 = 115 * SF, L2 = 135 * SF, L3 = 165 * SF;
+  var WALL_X = -50, FLOOR_Z = -400;   // Schulter des Mini-Controllers liegt 400 über dem Boden (Arm ist 415 lang)
+  var FOLLOWER = [0, 1000, FLOOR_Z + 3 * 400];   // 3x so hoch über dem Boden wie der Mini-Controller               // Schulter/Basis des großen Arms, weit hinten (mittlere Höhe an der Wand)
+  var CTRL_P = [0, -200, 0];                     // Schulterachse des Mini-Controllers, direkt am Brett (links)
+  var K = SF, ROD = 140, SLEEVE = 130, TOOL = 165, TBODY = 91;   // gleiche Größe wie der Follower
+
+  // Arm-Koordinaten (x vorn/unten, z Basisachse) -> Welt: F(p) = [p2, -p1, -p0]
+  function armDir(t, turn) { return [Math.sin(t), -Math.cos(t) * Math.sin(turn), -Math.cos(t) * Math.cos(turn)]; }
+  function armNu(t, turn) { return [Math.cos(t), Math.sin(t) * Math.sin(turn), Math.sin(t) * Math.cos(turn)]; }
+  function toArm(w) { return [-w[2], -w[1], w[0]]; }
+  // Controller-Richtungen (Azimut az um Z, Neigung t)
+  function dirW(t, az) { return [Math.cos(t) * Math.cos(az), Math.cos(t) * Math.sin(az), Math.sin(t)]; }
+  function nuW(t, az) { return [-Math.sin(t) * Math.cos(az), -Math.sin(t) * Math.sin(az), Math.cos(t)]; }
+
+  var lastTurn = 0;
+  // Basisdrehung für eine Richtung A (Arm-Koordinaten): zwei Möglichkeiten (Ebene +/- 180°), nahe an der letzten Stellung
+  function chooseTurn(A) {
+    var B0 = [Math.max(BOUNDS[0][0], -90), Math.min(BOUNDS[0][1], 90)], h = Math.hypot(A[0], A[1]), turn;   // wie Woche 7: Basis schwenkt nur im Halbkreis vor der Wand (±90°)
+    if (h < 0.1 * Math.hypot(A[0], A[1], A[2])) { turn = lastTurn; }
+    else {
+      var ta = Math.atan2(A[1], A[0]) * DEG;
+      if (Math.abs(ta) <= B0[1]) turn = ta;
+      else turn = Math.abs(A[1]) < 0.25 * h ? clamp(lastTurn, B0[0], B0[1]) : (A[1] > 0 ? B0[1] : B0[0]);
+    }
+    lastTurn = turn;
+    return turn;
+  }
+
+  // Follower: Ziel für das Handgelenk = Controller-Handgelenk (skaliert), Werkzeugrichtung = Controller-Werkzeug
+  function solve(s, turn, toolW, lift) {
+    var th = s.tilt * RAD, az = -s.pan * RAD;
+    var tw = mul(dirW(th, az), K * s.ext); tw[2] += (lift || 0); var A = toArm(tw);
+    var gt = toArm(toolW);
+    var tr = turn * RAD, r = A[0] * Math.cos(tr) + A[1] * Math.sin(tr), z = A[2];
+    var reach = false; if (r < 0) { r = 0; reach = true; }   // nicht über die Basis hinweg nach oben schwenken (Halbkreis wie Woche 7)
+    var d = Math.hypot(r, z), dmin = Math.abs(L1 - L2) + 5, dmax = L1 + L2;
+    if (d > dmax) { r *= dmax / d; z *= dmax / d; d = dmax; reach = true; }
+    if (d < dmin) { var f = dmin / Math.max(d, 1e-6); r *= f; z *= f; d = dmin; reach = true; }
+    var phi = Math.atan2(z, r);
+    var beta = Math.acos(clamp((d * d - L1 * L1 - L2 * L2) / (2 * L1 * L2), -1, 1));
+    var t0 = phi + Math.atan2(L2 * Math.sin(beta), L1 + L2 * Math.cos(beta));
+    var t2 = t0 - beta;
+    var t3 = Math.atan2(gt[2], gt[0] * Math.cos(tr) + gt[1] * Math.sin(tr));
+    var a = [turn, 90 - t0 * DEG, beta * DEG - 90, (t2 - t3) * DEG], joint = false;
+    for (var i = 0; i < 4; i++) {
+      var c = clamp(a[i], BOUNDS[i][0], BOUNDS[i][1]);
+      if (Math.abs(c - a[i]) > 0.01) joint = true;
+      a[i] = c;
+    }
+    return { a: a, a5: clamp(s.roll, BOUNDS[4][0], BOUNDS[4][1]), reach: reach, joint: joint };
+  }
+
+  function fk(a) {
+    var turn = a[0] * RAD;
+    var t0 = (90 - a[1]) * RAD, t1 = t0 - (90 + a[2]) * RAD, t2 = t1 - a[3] * RAD;
+    var d0 = armDir(t0, turn), d1 = armDir(t1, turn), d2 = armDir(t2, turn);
+    var o = FOLLOWER;
+    var p1 = add(o, mul(d0, L1)), p2 = add(p1, mul(d1, L2)), p3 = add(p2, mul(d2, L3));
+    return { pts: [o, p1, p2, p3], d: [d0, d1, d2], n: [0, -Math.cos(turn), Math.sin(turn)], nu: armNu(t2, turn) };
+  }
+
+  // ---------- Szene ----------
+  var host = document.getElementById('view');
+  var renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  host.insertBefore(renderer.domElement, host.firstChild);
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf2f2ee);
+  var camera = new THREE.PerspectiveCamera(38, 1, 20, 30000);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+  var sun = new THREE.DirectionalLight(0xffffff, 0.65); sun.position.set(500, 900, -300); scene.add(sun);
+
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(4200, 4200), new THREE.MeshStandardMaterial({ color: 0xe9e9e3, roughness: 1 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.set(-300, FLOOR_Z - 0.5, -1100); scene.add(floor);
+  var grid = new THREE.GridHelper(4200, 42, 0xc9c9c2, 0xdcdcd5); grid.position.set(-300, FLOOR_Z, -1100); scene.add(grid);
+
+  function mat(c, r) { return new THREE.MeshStandardMaterial({ color: c, roughness: r === undefined ? 0.6 : r, metalness: 0.1 }); }
+  var BLACK = mat(0x262626), DARK = mat(0x3a3a3a), GREY = mat(0x8f8f8f), BROWN = mat(0x6b4a2a, 0.85);
+  BROWN.transparent = true; BROWN.opacity = 0.25; BROWN.depthWrite = false;   // Wände durchsichtig
+  var UNIT = new THREE.BoxGeometry(1, 1, 1), YAXIS = new THREE.Vector3(0, 1, 0);
+
+  function segMesh(m, th) { var x = new THREE.Mesh(UNIT, m); scene.add(x); x.userData.th = th; return x; }
+  function seg(x, a, b) {
+    var A = T(a), B = T(b), L = A.distanceTo(B);
+    x.position.copy(A).add(B).multiplyScalar(0.5);
+    x.scale.set(x.userData.th, x.userData.th, Math.max(L, 0.01));
+    x.lookAt(B);
+  }
+  function plate(x, a, b, h, wd, th) {   // Platte: Länge a->b, Breite wd entlang h, Dicke th
+    var A = T(a), B = T(b), L = A.distanceTo(B);
+    x.position.copy(A).add(B).multiplyScalar(0.5);
+    x.scale.set(th, wd, Math.max(L, 0.01));
+    x.up.copy(T(h).sub(T([0, 0, 0])).normalize());
+    x.lookAt(B);
+  }
+  function cyl(r, len, m) { var x = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 28), m); scene.add(x); return x; }
+  function cylAt(x, p, n) { x.position.copy(T(p)); x.quaternion.setFromUnitVectors(YAXIS, T(n).sub(T([0, 0, 0])).normalize()); }
+  function ball(r, m) { var x = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), m); scene.add(x); return x; }
+  function boxAt(c, size, m) {   // size in Welt-Achsen [X, Y, Z]
+    var x = new THREE.Mesh(new THREE.BoxGeometry(size[1], size[2], size[0]), m); x.position.copy(T(c)); scene.add(x); return x;
+  }
+  var labelList = [];
+  function label(text, p, sc) {
+    var c = document.createElement('canvas'); c.width = 640; c.height = 96;
+    var g = c.getContext('2d'); g.font = '600 38px sans-serif'; g.fillStyle = '#1a1a1a'; g.textAlign = 'center'; g.fillText(text, 320, 58);
+    var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false }));
+    s.scale.set(300 * (sc || 1), 45 * (sc || 1), 1); s.position.copy(T(p)); scene.add(s); labelList.push(s); return s;
+  }
+
+  // Wand (reicht bis zum Boden)
+  boxAt([-60, CTRL_P[1], -180], [20, 150, 440], BROWN);                                   // Wand Mini-Controller
+  boxAt([-60 * SF, FOLLOWER[1], (FLOOR_Z + FOLLOWER[2] + 120) / 2], [20 * SF, 150 * SF, FOLLOWER[2] + 120 - FLOOR_Z], BROWN);   // Wand Follower
+
+  // Follower am Brett (3x)
+  boxAt([-32 * SF, FOLLOWER[1], FOLLOWER[2]], [36 * SF, 65 * SF, 82 * SF], BLACK);
+  var fBase = cyl(32 * SF, 40 * SF, DARK); fBase.position.copy(T([-5 * SF, FOLLOWER[1], FOLLOWER[2]])); fBase.rotation.x = Math.PI / 2;
+  var fl1 = segMesh(BLACK, 36 * SF), fl2 = segMesh(BLACK, 32 * SF), fTool = segMesh(BLACK, 38 * SF);
+  var fJ = [cyl(30 * SF, 58 * SF, BLACK), cyl(27 * SF, 54 * SF, BLACK), cyl(24 * SF, 50 * SF, BLACK)];
+  var fCap = [cyl(11 * SF, 62 * SF, GREY), cyl(10 * SF, 58 * SF, GREY), cyl(9 * SF, 54 * SF, GREY)];
+  var jawFixed = segMesh(BLACK, 8 * SF), jawMove = segMesh(DARK, 8 * SF);
+  label('Follower (Roboterarm, 3x)', [0, FOLLOWER[1], FOLLOWER[2] + 420], 3);
+
+  // Mini-Controller: gleicher Aufbau wie der Follower, in der Mitte eine verschiebbare Stange
+  boxAt([-32, CTRL_P[1], 0], [36, 65, 82], BLACK);
+  var cBase = cyl(32, 40, DARK); cBase.position.copy(T([-5, CTRL_P[1], 0])); cBase.rotation.x = Math.PI / 2;
+  var cShoulder = cyl(30, 58, BLACK), cShoulderCap = cyl(11, 62, GREY);
+  var cSleeve = segMesh(BLACK, 40), cRod = segMesh(GREY, 20);
+  var cWristJ = cyl(24, 50, BLACK), cWristCap = cyl(9, 54, GREY);
+  var cBody = segMesh(BLACK, 38), cJawFixed = segMesh(BLACK, 8), cJawMove = segMesh(DARK, 8);
+  var cBall = ball(34, mat(0xf0f0ea, 0.4));
+  // Variante 2: Mini-Greifer am Boden vor dem Mini-Controller
+  var MGX = 230, MGY = CTRL_P[1] - 320, MGZ = FLOOR_Z + 3;   // Mini-Greifer liegt auf dem Boden, näher zur Kamera
+  var WHITEM = mat(0xf0f0ea, 0.5);
+  var gHinge = cyl(5, 80, BLACK);
+  var gPlateA = new THREE.Mesh(UNIT, WHITEM), gPlateB = new THREE.Mesh(UNIT, WHITEM); scene.add(gPlateA); scene.add(gPlateB);
+  var gLabel = label('Mini-Greifer (Leertaste)', [MGX, MGY, FLOOR_Z + 150]);
+  var gObjs = [gHinge, gPlateA, gPlateB, gLabel];
+  label('Mini-Controller', [0, CTRL_P[1], 120]);
+
+  // Boxen zum Greifen (am Boden vor dem Follower)
+  var BOX = 90, BOXSTART = [[120, FOLLOWER[1] - 150], [170, FOLLOWER[1] + 60], [100, FOLLOWER[1] + 190]];
+  var BOXCOL = [0x6c8f73, 0x5b7ba3, 0xb08a5a];
+  var boxes = BOXSTART.map(function (b, i) {
+    var m = new THREE.Mesh(new THREE.BoxGeometry(BOX, BOX, BOX), mat(BOXCOL[i], 0.7)); scene.add(m);
+    return { col: BOXCOL[i], mesh: m, start: [b[0], b[1], FLOOR_Z + BOX / 2], pos: [b[0], b[1], FLOOR_Z + BOX / 2], held: false, off: [0, 0, 0], vz: 0 };
+  });
+  function placeBoxes() { boxes.forEach(function (b) { b.mesh.position.copy(T(b.pos)); }); }
+  function resetBoxes() { boxes.forEach(function (b) { b.pos = b.start.slice(); b.held = false; b.vz = 0; }); placeBoxes(); }
+  placeBoxes();
+  function cross3(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+
+  // Handles (orange, ziehbar)
+  var hmat = function () { return new THREE.MeshBasicMaterial({ color: 0xe8742a, transparent: true, opacity: 0.55, depthTest: false }); };
+  var H = {
+    tip: new THREE.Mesh(new THREE.SphereGeometry(26, 20, 14), hmat()),
+    wrist: new THREE.Mesh(new THREE.SphereGeometry(20, 20, 14), hmat()),
+    grip: new THREE.Mesh(new THREE.SphereGeometry(17, 20, 14), hmat()),
+    roll: new THREE.Mesh(new THREE.SphereGeometry(14, 20, 14), hmat())
+  };
+  Object.keys(H).forEach(function (k) { H[k].userData.id = k; H[k].renderOrder = 10; scene.add(H[k]); });
+  var HRAY = Object.keys(H).map(function (k) { return H[k]; });
+
+  // ---------- Zustand ----------
+  var DEFAULT = { pan: 0, tilt: 8, ext: 170, wrist: 0, roll: 0, grip: 40 };
+  var variant = 1;
+  var s = Object.assign({}, DEFAULT);
+  var ids = ['pan', 'tilt', 'ext', 'wrist', 'roll', 'grip'];
+  var el = {}; ids.forEach(function (i) { el[i] = document.getElementById(i); });
+  var warn = document.getElementById('warn');
+  var axesTable = document.getElementById('axes');
+  var ctl = {}, lastTcp = [400, FOLLOWER[1], 0];
+
+  function render() {
+    var az = -s.pan * RAD, th = s.tilt * RAD;
+    var P = CTRL_P, dr = dirW(th, az), Ac = toArm(dr);
+    var tcDeg = chooseTurn(Ac), tc = tcDeg * RAD;
+    var t0c = Math.atan2(Ac[2], Ac[0] * Math.cos(tc) + Ac[1] * Math.sin(tc));
+    // Boden: Spitze des Mini-Controllers darf nicht in den Boden
+    var LT = variant === 1 ? TOOL : 90, ctrlFloor = false;
+    function lowZ(wr, ex) { return P[2] + dr[2] * ex + armDir(t0c - wr * RAD, tc)[2] * LT; }
+    if (lowZ(s.wrist, s.ext) < FLOOR_Z) {
+      ctrlFloor = true;
+      var e0 = s.ext;
+      while (lowZ(s.wrist, s.ext) < FLOOR_Z && s.ext > 100) s.ext -= 1;
+      if (lowZ(s.wrist, s.ext) < FLOOR_Z) {
+        s.ext = e0; var bw = null;
+        for (var kk = 1; kk <= 200 && bw === null; kk++) {
+          [1, -1].forEach(function (sg) { var w = s.wrist + sg * kk; if (bw === null && w >= -100 && w <= 100 && lowZ(w, s.ext) >= FLOOR_Z) bw = w; });
+        }
+        if (bw !== null) s.wrist = bw;
+      }
+    }
+    var tTool = t0c - s.wrist * RAD;
+    var dt = armDir(tTool, tc), nu = armNu(tTool, tc), nC = [0, -Math.cos(tc), Math.sin(tc)];
+    var W = add(P, mul(dr, s.ext)), tail = add(P, mul(dr, Math.max(s.ext - ROD, 20)));
+    cylAt(cShoulder, P, nC); cylAt(cShoulderCap, P, nC);
+    seg(cSleeve, P, add(P, mul(dr, SLEEVE)));
+    seg(cRod, tail, W);
+    cylAt(cWristJ, W, nC); cylAt(cWristCap, W, nC);
+    var tb = variant === 1 ? TBODY : 44;
+    var Bj = add(W, mul(dt, tb));
+    seg(cBody, W, Bj);
+    var r5 = clamp(s.roll, BOUNDS[4][0], BOUNDS[4][1]) * RAD;
+    var jnu = add(mul(nu, Math.cos(r5)), mul(nC, Math.sin(r5))), jn = add(mul(nC, Math.cos(r5)), mul(nu, -Math.sin(r5)));
+    var op = s.grip / 100 * 60 * RAD, gp = Bj, gTip = Bj, tipPos = W, wristPos = add(W, mul(dt, tb * 0.5)), rollPos, mg = [MGX, MGY, MGZ];
+    cJawFixed.visible = cJawMove.visible = (variant === 1);
+    cBall.visible = (variant === 2);
+    gObjs.forEach(function (o) { o.visible = (variant === 2); });
+    H.grip.visible = (variant === 1);
+    if (variant === 1) {
+      seg(cJawFixed, add(Bj, mul(jnu, -12)), add(W, add(mul(dt, TOOL), mul(jnu, -12))));
+      var mdirC = add(mul(dt, Math.cos(op)), mul(jnu, Math.sin(op))), mAc = add(Bj, mul(jnu, 12));
+      gTip = add(mAc, mul(mdirC, TOOL - TBODY));
+      seg(cJawMove, mAc, gTip);
+      rollPos = add(Bj, mul(jnu, 38));
+    } else {
+      var ballC = add(Bj, mul(dt, 34));
+      cBall.position.copy(T(ballC)); tipPos = ballC; wristPos = add(W, mul(dt, 20));
+      var hh = [Math.cos(r5), Math.sin(r5), 0], perp = [-hh[1], hh[0], 0];
+      var alpha = s.grip / 100 * 90 * RAD;                     // Öffnungswinkel zwischen den Hälften
+      cylAt(gHinge, mg, hh);
+      var dA = perp, dB = add(mul(perp, Math.cos(alpha)), [0, 0, Math.sin(alpha)]);
+      plate(gPlateA, mg, add(mg, mul(dA, 95)), hh, 70, 5);                      // liegt auf dem Boden
+      plate(gPlateB, add(mg, [0, 0, 5]), add(add(mg, [0, 0, 5]), mul(dB, 95)), hh, 70, 5);   // klappt nach oben
+      rollPos = add(mg, mul(hh, 62));
+    }
+    H.tip.position.copy(T(tipPos));
+    H.wrist.position.copy(T(wristPos));
+    H.grip.position.copy(T(gTip));
+    H.roll.position.copy(T(rollPos));
+    ctl = { P: P, W: W, Bj: Bj, gp: gp, mg: mg, dt: dt, nuBase: nu, nu: jnu, jn: jn, az: az, tc: tc, n: nC, t0c: t0c };
+
+    var sol = solve(s, tcDeg, dt, 0), F = fk(sol.a), p = F.pts, lift = 0, floorHit = false;
+    // Boden: der Arm taucht nicht ein, er bleibt auf dem Boden stehen
+    for (var it = 0; it < 12; it++) {
+      var tipP = add(p[2], mul(F.d[2], L3)), low = Math.min(p[2][2], tipP[2], p[1][2] + 20) - FLOOR_Z;
+      if (low >= -0.05) break;
+      lift -= low; floorHit = true;
+      sol = solve(s, tcDeg, dt, lift); F = fk(sol.a); p = F.pts;
+    }
+    seg(fl1, p[0], p[1]); seg(fl2, p[1], p[2]);
+    for (var i = 0; i < 3; i++) { cylAt(fJ[i], p[i], F.n); cylAt(fCap[i], p[i], F.n); }
+    var base = add(p[2], mul(F.d[2], 91 * SF));
+    seg(fTool, p[2], base);
+    var f5 = sol.a5 * RAD, fnu = add(mul(F.nu, Math.cos(f5)), mul(F.n, Math.sin(f5)));
+    seg(jawFixed, add(base, mul(fnu, -12 * SF)), add(p[2], add(mul(F.d[2], L3), mul(fnu, -12 * SF))));
+    var open = s.grip / 100 * 60 * RAD;
+    var mdir = add(mul(F.d[2], Math.cos(open)), mul(fnu, Math.sin(open)));
+    var mA = add(base, mul(fnu, 12 * SF));
+    seg(jawMove, mA, add(mA, mul(mdir, L3 - 91 * SF)));
+
+    // Boxen greifen: Greifer fast zu (unter 25 %) und Box zwischen den Backen -> Box hängt am Greifer, ab 55 % lässt er los
+    var tcp = add(base, mul(F.d[2], (L3 - 91 * SF) * 0.5)); lastTcp = tcp; var e1 = F.d[2], e2 = fnu, e3 = cross3(e1, e2);
+    boxes.forEach(function (b) {
+      var dl = [b.pos[0] - tcp[0], b.pos[1] - tcp[1], b.pos[2] - tcp[2]];
+      if (!b.held && s.grip <= 25 && Math.hypot(dl[0], dl[1], dl[2]) < 120) {
+        var anyHeld = boxes.some(function (o) { return o.held; });
+        if (!anyHeld) { b.held = true; b.off = [dot(dl, e1), dot(dl, e2), dot(dl, e3)]; b.vz = 0; }
+      } else if (b.held && s.grip >= 55) { b.held = false; b.vz = 0; }
+      if (b.held) {
+        b.pos = add(tcp, add(mul(e1, b.off[0]), add(mul(e2, b.off[1]), mul(e3, b.off[2]))));
+        b.pos[2] = Math.max(b.pos[2], FLOOR_Z + BOX / 2);
+      }
+    });
+    boxes.forEach(function (b) {
+      var m = b.mesh.material;
+      if (b.held) { m.color.setHex(0x2fd16b); m.emissive.setHex(0x1f9d4c); } else { m.color.setHex(b.col); m.emissive.setHex(0x000000); }
+    });
+    document.getElementById('grab').style.display = boxes.some(function (b) { return b.held; }) ? 'block' : 'none';
+    placeBoxes();
+
+    var msgs = [];
+    if (ctrlFloor) msgs.push('Mini-Controller: Boden erreicht');
+    if (floorHit) msgs.push('Boden erreicht – der Arm kann nicht weiter nach unten');
+    if (sol.reach) msgs.push('Auszug außerhalb der Reichweite des Arms');
+    if (sol.joint) msgs.push('Gelenkgrenze erreicht');
+    var hit = false;
+    for (var q = 1; q < 4; q++) { var onWall = Math.abs(p[q][1] - FOLLOWER[1]) < 75 * SF + 10;
+      if ((p[q][0] < WALL_X * SF + 12 && onWall)) hit = true; }
+    if (hit) msgs.push('Arm würde Wand oder Boden berühren');
+    warn.textContent = msgs.join(' · '); warn.style.display = msgs.length ? 'block' : 'none';
+
+    var names = ['Achse 1 · Basis', 'Achse 2 · Schulter', 'Achse 3 · Ellbogen', 'Achse 4 · Handgelenk'];
+    var html = '';
+    for (var k = 0; k < 4; k++) html += '<tr><td>' + names[k] + '</td><td>' + rawOf(k, sol.a[k]) + '</td><td>' + sol.a[k].toFixed(0) + '°</td></tr>';
+    html += '<tr><td>Achse 5 · Greifer drehen</td><td>' + rawOf(4, sol.a5) + '</td><td>' + sol.a5.toFixed(0) + '°</td></tr>';
+    html += '<tr><td>Greifer</td><td>' + Math.round(s.grip) + ' %</td><td></td></tr>';
+    axesTable.innerHTML = html;
+
+    ids.forEach(function (k) { if (document.activeElement !== el[k]) el[k].value = s[k]; });
+    document.getElementById('vPan').textContent = Math.round(s.pan) + '°';
+    document.getElementById('vTilt').textContent = Math.round(s.tilt) + '°';
+    document.getElementById('vExt').textContent = Math.round(s.ext) + ' mm';
+    document.getElementById('vWrist').textContent = Math.round(s.wrist) + '°';
+    document.getElementById('vRoll').textContent = Math.round(s.roll) + '°';
+    document.getElementById('vGrip').textContent = Math.round(s.grip) + ' %';
+  }
+
+  ids.forEach(function (k) { el[k].addEventListener('input', function () { stopDemo(); s[k] = parseFloat(el[k].value); render(); }); });
+  document.getElementById('reset').addEventListener('click', function () { stopDemo(); Object.assign(s, DEFAULT); lastTurn = 0; resetBoxes(); render(); });
+
+  document.getElementById('seeThrough').addEventListener('change', function (e) { BROWN.opacity = e.target.checked ? 0.25 : 1; BROWN.depthWrite = !e.target.checked; BROWN.needsUpdate = true; });
+  var key = { mode: null, lastUp: -1000 };
+  var gripBtns = document.getElementById('gripBtns');
+  document.getElementById('variant').addEventListener('change', function (e) {
+    variant = parseInt(e.target.value, 10); key.mode = null;
+    if (variant === 2) s.grip = 50;
+    el.grip.disabled = (variant === 2); gripBtns.style.display = variant === 2 ? 'block' : 'none';
+    render();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.code !== 'Space' || variant !== 2) return;
+    var tg = e.target && e.target.tagName; if (tg === 'INPUT' || tg === 'SELECT' || tg === 'TEXTAREA' || tg === 'BUTTON') return;
+    e.preventDefault(); if (e.repeat) return;
+    key.mode = (performance.now() - key.lastUp < 350) ? 'open' : 'close';
+  });
+  document.addEventListener('keyup', function (e) { if (e.code === 'Space') { key.mode = null; key.lastUp = performance.now(); } });
+  window.addEventListener('blur', function () { key.mode = null; });
+  [['bClose', 'close'], ['bOpen', 'open']].forEach(function (p) {
+    var b = document.getElementById(p[0]);
+    b.addEventListener('pointerdown', function () { key.mode = p[1]; });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { if (key.mode === p[1]) key.mode = null; }); });
+  });
+  var lastNow = 0;
+
+  var demoOn = false, t0 = 0, dbtn = document.getElementById('demo');
+  function stopDemo() { demoOn = false; dbtn.textContent = '▶ Demo'; }
+  dbtn.addEventListener('click', function () { if (demoOn) { stopDemo(); return; } demoOn = true; t0 = performance.now(); dbtn.textContent = '■ Stopp'; });
+
+  // ---------- Kamera ----------
+  var cam = { theta: 1.3, phi: 1.15, r: 3300, target: new THREE.Vector3(-380, 60, -150) };
+  function placeCamera() {
+    camera.position.set(
+      cam.target.x + cam.r * Math.sin(cam.phi) * Math.sin(cam.theta),
+      cam.target.y + cam.r * Math.cos(cam.phi),
+      cam.target.z + cam.r * Math.sin(cam.phi) * Math.cos(cam.theta));
+    camera.lookAt(cam.target);
+  }
+
+  // ---------- Interaktion ----------
+  var canvas = renderer.domElement, ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  var drag = null, orbit = null;
+  function setRay(e) {
+    var r = canvas.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    camera.updateMatrixWorld(); ray.setFromCamera(ndc, camera);
+  }
+  function pick(e) { setRay(e); var h = ray.intersectObjects(HRAY.filter(function (o) { return o.visible; }), false); return h.length ? h[0].object.userData.id : null; }
+  function hitPlane(plane) { var v = new THREE.Vector3(); return ray.ray.intersectPlane(plane, v) ? v : null; }
+  function wrapDeg(a) { while (a > 180) a -= 360; while (a < -180) a += 360; return a; }
+
+  canvas.addEventListener('pointerdown', function (e) {
+    canvas.setPointerCapture(e.pointerId);
+    var id = pick(e);
+    if (id) {
+      stopDemo();
+      var cp, off = null;
+      if (id === 'tip') {
+        var nrm = new THREE.Vector3(); camera.getWorldDirection(nrm);
+        cp = new THREE.Plane().setFromNormalAndCoplanarPoint(nrm, T(ctl.W));
+        var h0 = hitPlane(cp); off = h0 ? T(ctl.W).sub(h0) : new THREE.Vector3();
+      } else {
+        var nn = id === 'grip' ? ctl.jn : id === 'roll' ? ctl.dt : ctl.n, pp = id === 'roll' ? ctl.Bj : ctl.W;
+        if (id === 'roll' && variant === 2) { nn = [0, 0, 1]; pp = ctl.mg; }
+        cp = new THREE.Plane().setFromNormalAndCoplanarPoint(T(nn).sub(T([0, 0, 0])).normalize(), T(pp));
+      }
+      drag = { id: id, plane: cp, off: off };
+    } else { orbit = { x: e.clientX, y: e.clientY }; }
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (drag) {
+      setRay(e);
+      var h = hitPlane(drag.plane); if (!h) return;
+      if (drag.id === 'tip') {
+        var Td = D(h.add(drag.off)), v = [Td[0] - ctl.P[0], Td[1] - ctl.P[1], Td[2] - ctl.P[2]];
+        var len = Math.hypot(v[0], v[1], v[2]); if (len < 1) return;
+        s.pan = clamp(-Math.atan2(v[1], v[0]) * DEG, -90, 90);
+        s.tilt = clamp(Math.asin(clamp(v[2] / len, -1, 1)) * DEG, -90, 90);
+        s.ext = clamp(len, 100, 245);
+      } else {
+        var hd = D(h);
+        if (drag.id === 'wrist') {
+          var dA = toArm([hd[0] - ctl.W[0], hd[1] - ctl.W[1], hd[2] - ctl.W[2]]);
+          var tt = Math.atan2(dA[2], dA[0] * Math.cos(ctl.tc) + dA[1] * Math.sin(ctl.tc));
+          s.wrist = clamp(wrapDeg((ctl.t0c - tt) * DEG), -100, 100);
+        } else if (drag.id === 'roll') {
+          if (variant === 2) {
+            s.roll = clamp(wrapDeg(Math.atan2(hd[1] - ctl.mg[1], hd[0] - ctl.mg[0]) * DEG), -160, 160);
+          } else {
+            var v5 = [hd[0] - ctl.Bj[0], hd[1] - ctl.Bj[1], hd[2] - ctl.Bj[2]];
+            s.roll = clamp(Math.atan2(dot(v5, ctl.n), dot(v5, ctl.nuBase)) * DEG, -160, 160);
+          }
+        } else {
+          var q = [hd[0] - ctl.gp[0], hd[1] - ctl.gp[1], hd[2] - ctl.gp[2]];
+          s.grip = clamp(Math.atan2(dot(q, ctl.nu), Math.max(dot(q, ctl.dt), 1)) * DEG / 60 * 100, 0, 100);
+        }
+      }
+      render(); return;
+    }
+    if (orbit) {
+      var kp = 2 * Math.tan(camera.fov * RAD / 2) * cam.r / canvas.clientHeight;
+      var rv = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), uv = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+      cam.target.addScaledVector(rv, -(e.clientX - orbit.x) * kp).addScaledVector(uv, (e.clientY - orbit.y) * kp);
+      orbit = { x: e.clientX, y: e.clientY }; return;
+    }
+    canvas.style.cursor = pick(e) ? 'grab' : 'default';
+  });
+  function end() { drag = null; orbit = null; }
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', end);
+  canvas.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    if (e.ctrlKey) {                       // Pinch auf dem Touchpad = Zoom
+      cam.r = clamp(cam.r * (1 + e.deltaY * 0.01), 400, 9000);
+    } else if (e.shiftKey) {               // Shift + zwei Finger = Ansicht verschieben
+      var k = cam.r * 0.0012, sx = Math.cos(cam.theta), sz = -Math.sin(cam.theta);
+      cam.target.x += (e.deltaX * sx) * k * -1; cam.target.z += (e.deltaX * sz) * k * -1;
+      cam.target.y += e.deltaY * k;
+    } else {                               // Zwei Finger = Blickwinkel ändern
+      cam.theta += e.deltaX * 0.006;
+      cam.phi = clamp(cam.phi + e.deltaY * 0.006, 0.15, 1.5);
+    }
+  }, { passive: false });
+
+  function resize() {
+    var w = host.clientWidth, h = host.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------- Draufsicht (nur Zusatzfenster; durchsichtiger Follower, zoomt an Boxen heran) ----------
+  var inEl = document.createElement('div');
+  inEl.style.cssText = 'position:absolute;right:12px;top:12px;border:2px solid #444;pointer-events:none;box-sizing:border-box';
+  inEl.innerHTML = '<div style="position:absolute;left:6px;top:4px;font:600 12px system-ui;color:#333">Draufsicht Follower</div>';
+  host.appendChild(inEl);
+  var topCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 6000);
+  var inV = { cx: -FOLLOWER[1], cz: -450, half: 1000 };
+  var tMats = [BLACK, DARK, GREY];
+  function drawInset() {
+    var W = host.clientWidth, Hh = host.clientHeight, sz = Math.round(Math.min(340, Math.min(W, Hh) * 0.42));
+    inEl.style.width = inEl.style.height = sz + 'px';
+    var tc = lastTcp, best = 1e9, bp = null;
+    boxes.forEach(function (b) { var d = Math.hypot(b.pos[0] - tc[0], b.pos[1] - tc[1], b.pos[2] - tc[2]); if (d < best) { best = d; bp = b.pos; } });
+    var k = clamp(1 - (best - 100) / 600, 0, 1);
+    var tx = -FOLLOWER[1], tz = -450, th = 1000;
+    if (bp) { tx += (-bp[1] - tx) * k; tz += (-bp[0] - tz) * k; th += (260 - th) * k; }
+    inV.cx += (tx - inV.cx) * 0.12; inV.cz += (tz - inV.cz) * 0.12; inV.half += (th - inV.half) * 0.12;
+    topCam.left = -inV.half; topCam.right = inV.half; topCam.top = inV.half; topCam.bottom = -inV.half; topCam.updateProjectionMatrix();
+    topCam.position.set(inV.cx, 3000, inV.cz); topCam.up.set(0, 0, 1); topCam.lookAt(inV.cx, 0, inV.cz);
+    tMats.forEach(function (m) { m.transparent = true; m.opacity = 0.35; m.depthWrite = false; });
+    labelList.forEach(function (l) { l.visible = false; });
+    renderer.setScissorTest(true); renderer.setViewport(W - sz - 12, Hh - sz - 12, sz, sz); renderer.setScissor(W - sz - 12, Hh - sz - 12, sz, sz);
+    renderer.render(scene, topCam);
+    renderer.setScissorTest(false); renderer.setViewport(0, 0, W, Hh);
+    tMats.forEach(function (m) { m.transparent = false; m.opacity = 1; m.depthWrite = true; });
+    labelList.forEach(function (l) { l.visible = true; });
+  }
+
+  function loop(now) {
+    var dts = Math.min((now - lastNow) / 1000, 0.05); lastNow = now;
+    var moved = false;
+    boxes.forEach(function (b) {
+      var fl = FLOOR_Z + BOX / 2;
+      if (!b.held && b.pos[2] > fl + 0.01) { b.vz -= 4000 * dts; b.pos[2] = Math.max(b.pos[2] + b.vz * dts, fl); if (b.pos[2] <= fl) b.vz = 0; moved = true; }
+    });
+    if (moved) placeBoxes();
+    if (variant === 2) {
+      var tgt = key.mode === 'close' ? 0 : key.mode === 'open' ? 100 : s.grip, rate = 170 * dts;
+      if (key.mode && Math.abs(s.grip - tgt) > 0.01) { s.grip = s.grip + clamp(tgt - s.grip, -rate, rate); render(); }
+    }
+    if (demoOn) {
+      var t = (now - t0) / 1000;
+      s.pan = 30 * Math.sin(t * 0.7); s.tilt = 15 + 25 * Math.sin(t * 0.9 + 1);
+      s.ext = 170 + 55 * Math.sin(t * 1.1); s.wrist = 10 + 40 * Math.sin(t * 1.3); s.roll = 60 * Math.sin(t * 0.8); if (variant === 1) s.grip = 50 + 50 * Math.sin(t * 1.7);
+      render();
+    }
+    H.tip.material.opacity = H.wrist.material.opacity = H.grip.material.opacity = H.roll.material.opacity = 0.55;
+    if (drag) H[drag.id].material.opacity = 0.9;
+    placeCamera(); renderer.render(scene, camera); drawInset();
+    requestAnimationFrame(loop);
+  }
+  resize(); render(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
