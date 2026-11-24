@@ -31,6 +31,8 @@ a.card:focus-visible{outline:3px solid #ed7e2a88;outline-offset:3px}
 .visual .j{fill:var(--card);stroke:var(--ink);stroke-width:3}
 .visual .h{fill:var(--orange);opacity:.7}
 .visual .wall{fill:var(--line)}
+.visual .frame path{fill:none;stroke:var(--muted);stroke-width:2.5;stroke-linejoin:round}
+.visual .str line{stroke:var(--orange);stroke-width:1.2;opacity:.8}
 .body{padding:20px 22px 22px;display:flex;flex-direction:column;gap:8px;flex:1}
 .body h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-.4px}
 .body p{margin:0;color:var(--muted);line-height:1.55;font-size:13px}
@@ -47,7 +49,7 @@ footer{padding:18px 30px;border-top:1px solid var(--line);color:var(--muted);fon
 <main>
   <div class="tag">Übersicht</div>
   <h2>Roboterarm steuern</h2>
-  <p class="lead">Zwei Wege, den Arm zu bewegen: direkt in der 3D-Szene oder über einen kleinen Mini-Controller, dessen Bewegung der große Arm nachmacht.</p>
+  <p class="lead">Drei Wege, den Arm zu bewegen: direkt in der 3D-Szene, über einen kleinen Mini-Controller oder mit einem Handschuh, der an Fäden in einem Würfel hängt.</p>
   <div class="cards">
     <a class="card" href="robot-control-3d.html?from=home">
       <div class="visual" aria-hidden="true">
@@ -81,6 +83,24 @@ footer{padding:18px 30px;border-top:1px solid var(--line);color:var(--muted);fon
         <div class="tag">02 · Simulation</div>
         <h3>Mini-Controller → Roboterarm</h3>
         <p>Einen kleinen Arm mit ausziehbarer Stange bewegen – der dreimal so große Follower folgt. Mit Kalibrierwerten für die echten Achsen.</p>
+        <span class="go">Öffnen →</span>
+      </div>
+    </a>
+    <a class="card" href="seilzug-wuerfel.html?from=home">
+      <div class="visual" aria-hidden="true">
+        <svg viewBox="0 0 220 140">
+          <g class="frame"><path d="M14 44 L64 22 L104 36 L54 58 Z M14 44 L14 118 L54 132 L54 58 M104 36 L104 110 L54 132 M64 22 L64 96 L14 118 M64 96 L104 110"/></g>
+          <g class="str"><line x1="14" y1="44" x2="58" y2="76"/><line x1="64" y1="22" x2="58" y2="76"/><line x1="104" y1="36" x2="58" y2="76"/><line x1="54" y1="58" x2="58" y2="76"/><line x1="14" y1="118" x2="58" y2="76"/><line x1="64" y1="96" x2="58" y2="76"/><line x1="104" y1="110" x2="58" y2="76"/><line x1="54" y1="132" x2="58" y2="76"/></g>
+          <circle class="h" cx="58" cy="76" r="8"/>
+          <rect class="wall" x="132" y="10" width="10" height="120" rx="2"/>
+          <polyline class="arm" points="146,52 178,30 206,56 210,90"/>
+          <circle class="j" cx="146" cy="52" r="8"/><circle class="j" cx="178" cy="30" r="7"/><circle class="j" cx="206" cy="56" r="6"/>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="tag">03 · Simulation</div>
+        <h3>Seilzug-Würfel → Roboterarm</h3>
+        <p>Ein Handschuh hängt an Fäden in einem Würfel. Encoder in den Ecken messen die Fadenlängen, daraus entsteht X / Y / Z – der große Arm greift mit.</p>
         <span class="go">Öffnen →</span>
       </div>
     </a>
