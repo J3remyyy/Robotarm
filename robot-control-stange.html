@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Robot Studio · Stange</title>
+<script>if(!/[?&]from=home\b/.test(location.search))location.replace('index.html');</script>
+<script id="theme-init">(()=>{let t=null;try{t=localStorage.getItem("robot-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t})()</script>
+<style>
+/* Grundlage: Robot Studio 3D (robot-control-3d.html) – gleiche Farben, Schrift und Bedienelemente. */
+:root{--bg:#f2f2f2;--head:#fafafa;--panel:#fbfbfb;--card:#ffffff;--line:#dbdbdb;--track:#e6e6e6;--ink:#222222;--muted:#5f5f5f;--orange:#ed7e2a;--green:#3f9a63;--num:#4b3f9e;color-scheme:light}
+:root[data-theme="dark"]{--bg:#0f0f0f;--head:#0a0a0a;--panel:#141414;--card:#191919;--line:#333333;--track:#262626;--ink:#f5f5f5;--muted:#a8a8a8;--green:#4fb87b;--num:#7d70d8;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;display:flex;flex-direction:column;height:100dvh;color:var(--ink);background:var(--bg);font:13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:7px;padding:9px 12px;transition:background .15s,color .15s,border-color .15s}
+button:not(:disabled):hover{background:#e8e8e8}
+button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #ed7e2a88;outline-offset:3px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.primary{background:var(--ink);color:#ffffff;border-color:var(--ink)}.primary:not(:disabled):hover{background:#424242}
+.stop{color:#a4473b}
+:root[data-theme="dark"] button,:root[data-theme="dark"] select{background:#161616;color:#ffffff;border-color:#6b6b6b}
+:root[data-theme="dark"] button:not(:disabled):hover{background:#ffffff;color:#000000;border-color:#ffffff}
+:root[data-theme="dark"] .primary{background:#ffffff;color:#000000;border-color:#ffffff}
+:root[data-theme="dark"] .primary:not(:disabled):hover{background:#000000;color:#ffffff;border-color:#ffffff}
+:root[data-theme="dark"] .stop{color:#e58b7f}
+
+/* Kopfzeile */
+body>header{flex:none;min-height:76px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;padding:10px 30px;border-bottom:1px solid var(--line);background:var(--head)}
+.brand{display:flex;align-items:center;gap:13px}
+.logo{width:34px;height:34px;display:grid;place-items:center;border:1px solid #c3c3c3;border-radius:9px;font-size:24px;color:#c25e12;text-decoration:none}
+:root[data-theme="dark"] .logo{border-color:#414141;color:#e07a2c}
+h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.5px}
+.sub{color:var(--muted);font-size:10px;letter-spacing:1.1px;margin-top:4px;text-transform:uppercase}
+.connect{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.connect button{font-size:12px;white-space:nowrap}
+.sim-tools{display:flex;gap:6px;align-items:center;padding-right:12px;border-right:1px solid var(--line)}
+.sim-tools button{padding:8px 11px}
+#connection{font-size:11px;color:var(--muted);max-width:240px;line-height:1.45}
+#theme-toggle{width:38px;height:38px;padding:0;display:grid;place-items:center;font-size:16px;line-height:1}
+#sync-position.sync-required{border-color:var(--orange)}
+
+/* Bühne */
+.layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px}
+.stage{position:relative;min-width:0;min-height:520px;overflow:hidden;background:radial-gradient(ellipse at 50% 40%,#ffffff 0,#ededed 80%)}
+:root[data-theme="dark"] .stage{background:radial-gradient(ellipse at 50% 40%,#1b1b1b 0,#0c0c0c 80%)}
+#scene{width:100%;height:100%;display:block;touch-action:none;outline:none}
+.view-buttons{position:absolute;left:16px;top:16px;display:flex;flex-wrap:wrap;gap:5px;max-width:calc(100% - 280px)}
+.view-buttons button{font-size:11px;padding:7px 10px;background:#ffffffc9;backdrop-filter:blur(8px)}
+.view-buttons .active{background:#303030;color:#ffffff;border-color:#303030}
+.view-buttons .gap{width:8px}
+:root[data-theme="dark"] .view-buttons button{background:#191919c9}
+:root[data-theme="dark"] .view-buttons .active{background:#eaeaea;color:#111111;border-color:#eaeaea}
+.tool-view{position:absolute;right:16px;top:16px;width:236px;border:1px solid #d6d6d6;border-radius:10px;overflow:hidden;background:#fafafa;box-shadow:0 8px 30px #27272712;pointer-events:none}
+.tool-view .tv-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 11px;font-size:10px}
+.tool-view .tv-head b{font-weight:500}
+.tool-view .tv-head b:before{content:'';display:inline-block;width:5px;height:5px;background:#5b85d3;border-radius:50%;margin-right:7px;vertical-align:middle}
+.tool-view .tv-head span{font:9px ui-monospace,monospace;color:var(--muted)}
+.tool-view canvas{width:100%;aspect-ratio:5/3;display:block;background:#ececec}
+:root[data-theme="dark"] .tool-view{border-color:#2b2b2b;background:#161616;box-shadow:0 8px 28px #000c}
+:root[data-theme="dark"] .tool-view canvas{background:#0e0e0e}
+.grab-toast{position:absolute;left:50%;top:22px;z-index:6;transform:translate(-50%,-8px);opacity:0;pointer-events:none;padding:9px 16px;border-radius:999px;font-weight:600;font-size:14px;color:#ffffff;background:#3f9a63;box-shadow:0 6px 20px #22222233;transition:opacity .18s,transform .18s}
+.grab-toast.show{opacity:1;transform:translate(-50%,0)}.grab-toast.release{background:#5e5e5e}
+.grab-toast.show.pop{animation:grabpop .32s ease-out}
+@keyframes grabpop{0%{transform:translate(-50%,0) scale(.85)}60%{transform:translate(-50%,0) scale(1.08)}100%{transform:translate(-50%,0) scale(1)}}
+.squeeze{position:absolute;right:16px;bottom:calc(var(--legend-h,0px) + 30px);z-index:4;display:flex;flex-direction:column;align-items:center;gap:2px;padding:11px 16px;border-radius:14px;font-weight:600;font-size:12px;background:#ffffffe6;box-shadow:0 5px 20px #27272714;touch-action:none;user-select:none;-webkit-user-select:none}
+.squeeze small{font-weight:400;font-size:10px;color:var(--muted)}
+.squeeze.active,.squeeze.active:hover{background:#ed7e2a!important;color:#ffffff!important;border-color:#ed7e2a!important}
+.squeeze.active small{color:#ffffff}
+:root[data-theme="dark"] .squeeze{background:#191919e6}
+
+/* Legende */
+.key-legend{position:absolute;left:16px;right:16px;bottom:16px;z-index:3;padding:10px 34px 10px 14px;border:1px solid #d4d4d4;border-radius:10px;background:#ffffffeb;backdrop-filter:blur(8px);font-size:11.5px;color:#1a1a1a;pointer-events:none}
+.key-legend .row{display:grid;grid-template-columns:72px 1fr;align-items:center}
+.key-legend .row+.row{margin-top:8px;padding-top:8px;border-top:1px solid #dddddd}
+.key-legend .g{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5f5f5f}
+.key-legend .items{display:flex;flex-wrap:wrap;gap:6px 20px;padding-left:14px;border-left:1px solid #d4d4d4}
+.key-legend .k{display:inline-flex;align-items:center;gap:5px}
+.key-legend kbd{font:600 10.5px ui-monospace,SFMono-Regular,monospace;min-width:22px;padding:2px 5px;border:1px solid #9a9a9a;border-bottom-width:2px;border-radius:5px;background:#ffffff;color:#111111;text-align:center}
+.key-legend .handle{display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid #ed7e2a;box-shadow:inset 0 0 0 4px #ffffff;background:#ed7e2a}
+.key-legend .close{position:absolute;right:5px;top:5px;pointer-events:auto;border:0;background:transparent;padding:3px 8px;font-size:12px;color:var(--muted)}
+:root[data-theme="dark"] .key-legend{border-color:#2e2e2e;background:#191919eb;color:#fafafa}
+:root[data-theme="dark"] .key-legend .row+.row{border-top-color:#333333}
+:root[data-theme="dark"] .key-legend .items{border-left-color:#333333}
+:root[data-theme="dark"] .key-legend .g{color:#b4b4b4}
+:root[data-theme="dark"] .key-legend kbd{border-color:#707070;background:#191919;color:#fafafa}
+:root[data-theme="dark"] .key-legend .handle{box-shadow:inset 0 0 0 4px #191919}
+:root[data-theme="dark"] .key-legend .close{background:transparent;border:0}
+
+/* Einführung */
+.intro{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:16px;background:#f2f2f2cc;backdrop-filter:blur(6px);transition:opacity .25s}
+.intro.hide{opacity:0;pointer-events:none}
+.intro-card{width:min(760px,100%);max-height:100%;overflow:auto;background:#ffffff;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px #2222221f;padding:24px 24px 20px}
+.intro-card h2{margin:0 0 4px;font-size:20px;font-weight:600}.intro-card>p{margin:0 0 18px;color:var(--muted);line-height:1.5}
+.intro-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.intro-step{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg)}
+.intro-step b{display:block;margin-top:10px;font-weight:600}.intro-step span{color:var(--muted);font-size:12px;line-height:1.45}
+.ill{display:block;width:100%;height:auto;aspect-ratio:2/1;border-radius:9px;background:#ffffff;border:1px solid var(--line)}
+.ill .base{fill:#e4e4e4;stroke:#c9c9c9}.ill .bar{stroke:#8d8d8d;stroke-width:6;stroke-linecap:round}.ill .post{stroke:#8d8d8d;stroke-width:5}
+.ill .pivot{fill:#ffffff;stroke:#8d8d8d;stroke-width:2.5}.ill .shell{fill:#faecd6;stroke:#a0611f;stroke-width:1.6}
+.ill .finger{fill:none;stroke:#9a9a9a;stroke-width:1.6}.ill .loop{fill:none;stroke:#8f5216;stroke-width:2}.ill .motor{fill:#d9483b}
+.ill .wave{fill:none;stroke:#ed7e2a;stroke-width:2;stroke-linecap:round}.ill .arrow{fill:none;stroke:#ed7e2a;stroke-width:2;stroke-dasharray:4 4}
+.ill .tag{font:600 10px ui-monospace,monospace;fill:#5f5f5f}
+.ill .rod-move{transform-origin:80px 38px;animation:ill-tilt 3.2s ease-in-out infinite}
+@keyframes ill-tilt{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(9deg)}}
+.ill .f-top{animation:ill-pinch-a 2.4s ease-in-out infinite}.ill .f-bottom{animation:ill-pinch-b 2.4s ease-in-out infinite}
+@keyframes ill-pinch-a{0%,15%,100%{transform:translateY(0)}45%,70%{transform:translateY(12px)}}
+@keyframes ill-pinch-b{0%,15%,100%{transform:translateY(0)}45%,70%{transform:translateY(-12px)}}
+.ill .wave{animation:ill-wave 1.1s ease-in-out infinite}.ill .wave.w2{animation-delay:.18s}
+@keyframes ill-wave{0%,100%{opacity:.15}50%{opacity:1}}
+.intro-foot{display:flex;justify-content:flex-end;margin-top:18px}.intro-foot .primary{padding:10px 18px}
+@media(max-width:700px){.intro-steps{grid-template-columns:1fr}.intro-card{padding:18px}}
+@media(prefers-reduced-motion:reduce){.ill *{animation:none!important}}
+:root[data-theme="dark"] .intro{background:#121212cc}:root[data-theme="dark"] .intro-card{background:#191919}
+:root[data-theme="dark"] .ill{background:#121212}:root[data-theme="dark"] .ill .base{fill:#2a2a2a;stroke:#3a3a3a}
+:root[data-theme="dark"] .ill .pivot{fill:#121212}:root[data-theme="dark"] .ill .shell{fill:#3b3023;stroke:#c98a45}
+:root[data-theme="dark"] .ill .loop{stroke:#d99a55}:root[data-theme="dark"] .ill .tag{fill:#a8a8a8}
+
+/* Seitenleiste */
+.panel{min-width:0;overflow:auto;background:var(--panel);border-left:1px solid var(--line);padding:18px 20px 30px}
+.panel section{padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--line)}
+.panel h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;font-weight:600;margin:0 0 12px}
+.panel h3 small{font:10px ui-monospace,monospace;color:var(--muted);font-weight:400;letter-spacing:.5px}
+#hand-view{width:100%;aspect-ratio:2/1;display:block;border-radius:9px;background:var(--card);border:1px solid var(--line)}
+.parts{list-style:none;margin:11px 0 0;padding:0;display:grid;gap:6px;font-size:11px;color:var(--muted)}
+.parts li{display:flex;gap:8px;align-items:flex-start;line-height:1.45}.parts b{color:var(--ink);font-weight:600}
+.num{flex:none;display:inline-block;width:17px;height:17px;border-radius:50%;background:var(--num);color:#ffffff;font:600 10px/17px -apple-system,sans-serif;text-align:center}
+.sensor{display:grid;grid-template-columns:17px 1fr auto;gap:5px 9px;align-items:center;padding:7px 0}
+.sensor+.sensor{border-top:1px solid var(--track)}
+.sensor .name{font-size:12px}.sensor output{font:11px ui-monospace,monospace;color:var(--muted)}
+.bar{grid-column:2/4;position:relative;height:5px;border-radius:3px;background:var(--track);overflow:hidden}
+.bar i{position:absolute;top:0;bottom:0;left:0;width:0;background:var(--ink);border-radius:3px}
+.bar.center:after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted)}
+.sensor.vib .bar i{background:var(--orange)}
+.chip{display:flex;gap:9px;align-items:center;margin-top:12px;padding:9px 11px;border-radius:8px;background:var(--card);border:1px solid var(--line);font-size:11.5px;line-height:1.4}
+.chip:before{content:'';flex:none;width:8px;height:8px;border-radius:50%;background:var(--green)}
+.chip.warn:before{background:var(--orange)}.chip.idle:before{background:var(--muted)}
+.target{font:10px ui-monospace,monospace;color:var(--muted);margin-top:8px;line-height:1.6}
+.field{display:block;margin:0 0 14px;font-size:12px}
+.field>span{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.field output{font:11px ui-monospace,monospace;color:var(--muted)}
+input[type=range]{accent-color:var(--orange);width:100%;height:18px;margin:0;cursor:pointer}
+select{width:100%;background:var(--card);border:1px solid var(--line);padding:7px;border-radius:6px;font-size:12px}
+.note{color:var(--muted);font-size:11px;line-height:1.6;margin:8px 0 0}
+.row{display:flex;gap:6px}.row button{flex:1;font-size:11px;padding:9px 6px}
+#message{min-height:38px;font-size:12px;line-height:1.55;color:var(--muted)}
+#object-status{font-size:11px;color:var(--muted);margin-top:6px}#object-status.held{color:var(--green);font-weight:600}
+.panel details{font-size:12px;border-bottom:1px solid var(--line);padding:2px 0 14px;margin-bottom:14px}
+.panel summary{cursor:pointer;font-weight:600;padding:6px 0}
+.panel details details{border:0;padding:0;margin:8px 0}.panel details details summary{font-weight:500;font-size:11px}
+.joint{display:grid;grid-template-columns:24px 1fr auto;gap:4px 8px;align-items:center;font-size:11px;padding:6px 0}
+.joint span{font:10px ui-monospace,monospace;color:var(--muted)}.joint output{font:11px ui-monospace,monospace;color:var(--muted)}
+.proto{font-size:11px;color:var(--muted);line-height:1.65;margin:8px 0}
+.proto b{color:var(--ink)}
+.proto code{font:10.5px ui-monospace,monospace;background:var(--track);padding:1px 4px;border-radius:4px;color:var(--ink)}
+.panel pre{font:10px/1.5 ui-monospace,monospace;background:var(--track);border-radius:6px;padding:9px;overflow:auto;margin:8px 0 0}
+#log{max-height:140px;white-space:pre-wrap}
+#query{font-size:11px;padding:8px 10px}
+
+@media(max-width:1100px){.layout{grid-template-columns:minmax(0,1fr) 310px}.tool-view{width:190px}.view-buttons{max-width:calc(100% - 230px)}}
+@media(max-width:780px){
+ body{height:auto}body>header{padding:10px 16px}#connection{display:none}.sim-tools{border-right:0;padding-right:0}
+ .layout{display:block}.stage{height:78dvh;min-height:560px}.panel{border-left:0;border-top:1px solid var(--line)}
+ .tool-view{width:150px}.view-buttons{max-width:calc(100% - 185px)}.key-legend{font-size:10.5px}.key-legend .row{grid-template-columns:58px 1fr}.key-legend .items{gap:5px 12px;padding-left:9px}
+}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand"><a class="logo" href="index.html" title="Zur Übersicht" aria-label="Zur Übersicht">⌁</a><div><h1>Robot Studio</h1><div class="sub">Stange mit Handschale / 3D</div></div></div>
+ <div class="connect">
+  <div class="sim-tools" role="group" aria-label="Simulation">
+   <button id="toggle-props" aria-pressed="true" title="Virtuelle Blöcke und Ablagen ein- oder ausblenden">Blöcke: ein</button>
+   <button id="reset-blocks" title="Blöcke an ihre Ausgangsposition zurücklegen">Blöcke zurücksetzen</button>
+   <button id="toggle-sound" aria-pressed="true" title="Das Brummen in den Fingerspitzen zusätzlich als Ton ausgeben">Ton: ein</button>
+  </div>
+  <span id="connection" role="status">Roboter: Simulation · Bedienteil: Maus und Tastatur</span>
+  <button id="sync-position" hidden>An Roboterposition anpassen</button>
+  <button id="connect-hand" title="Das echte Bedienteil (Stange mit Handschale) per USB anschließen">Bedienteil verbinden ↗</button>
+  <button id="theme-toggle" type="button" aria-pressed="false" title="Dunklen Modus aktivieren">☾</button>
+  <button class="primary" id="connect">Roboter verbinden ↗</button>
+ </div>
+</header>
+
+<div class="layout">
+ <main class="stage" id="stage">
+  <canvas id="scene" tabindex="0" aria-label="3D-Szene: Besucherin, Bedienteil mit Stange und Handschale, Roboterarm auf dem Tisch. Die Handschale ziehen bewegt die Hand; der Greifer fährt in dieselbe Richtung."></canvas>
+  <div class="view-buttons" role="group" aria-label="Ansicht">
+   <button data-view="overview" class="active">Übersicht</button>
+   <button data-view="visitor">Besucherin</button>
+   <button data-view="side">Seite</button>
+   <button data-view="top">Oben</button>
+   <button data-view="robot">Roboter nah</button>
+   <span class="gap" aria-hidden="true"></span>
+   <button id="legend-toggle" aria-pressed="true">Tasten</button>
+   <button id="help">Erklärung</button>
+  </div>
+  <div class="tool-view" aria-label="Simulierte Kamera am Greifer"><div class="tv-head"><b>Greiferkamera</b><span>SIMULATION</span></div><canvas id="tool-camera" width="280" height="168" aria-label="Blick durch den Greifer"></canvas></div>
+  <div class="grab-toast" id="grab-toast" role="status" aria-live="polite"></div>
+  <button class="squeeze" id="squeeze" tabindex="-1" aria-pressed="false">Finger drücken<small>oder Space halten</small></button>
+  <div class="key-legend" id="key-legend" aria-label="Bedienung">
+   <button class="close" id="legend-close" aria-label="Legende ausblenden">✕</button>
+   <div class="row"><b class="g">Maus</b><div class="items">
+    <span class="k"><i class="handle" aria-hidden="true"></i>Handschale ziehen: Hand bewegen</span>
+    <span class="k"><kbd>Shift</kbd>+ ziehen: waagerecht</span>
+    <span class="k">Freie Fläche ziehen: Ansicht verschieben</span>
+    <span class="k"><kbd>2 Finger</kbd>Ansicht drehen</span>
+    <span class="k"><kbd>Rad</kbd><kbd>Pinch</kbd>Zoom</span>
+   </div></div>
+   <div class="row"><b class="g">Tastatur</b><div class="items">
+    <span class="k"><kbd>↑</kbd><kbd>↓</kbd>heben / senken</span>
+    <span class="k"><kbd>←</kbd><kbd>→</kbd>links / rechts</span>
+    <span class="k"><kbd>Shift</kbd>+<kbd>↑</kbd><kbd>↓</kbd>vor / zurück</span>
+    <span class="k"><kbd>Q</kbd><kbd>E</kbd>Drehring</span>
+    <span class="k"><kbd>Space</kbd>halten: Finger zusammendrücken</span>
+   </div></div>
+  </div>
+  <div class="intro hide" id="intro" hidden role="dialog" aria-modal="true" aria-labelledby="intro-title">
+   <div class="intro-card">
+    <h2 id="intro-title">Die Hand greift – durch den Roboter hindurch</h2>
+    <p>Die Besucherin schiebt die Hand in die Schale am Ende der Stange. Der Roboter steht ihr gegenüber und schaut zu ihr: Was die Hand macht, macht der Greifer in dieselbe Richtung.</p>
+    <div class="intro-steps">
+     <div class="intro-step">
+      <svg class="ill" viewBox="0 0 220 110" aria-hidden="true"><rect class="base" x="52" y="74" width="56" height="32" rx="4"/><line class="post" x1="80" y1="74" x2="80" y2="40"/><g class="rod-move"><line class="bar" x1="36" y1="26" x2="150" y2="57"/><rect class="shell" x="146" y="46" width="38" height="24" rx="9" transform="rotate(15 165 58)"/><circle class="pivot" cx="80" cy="38" r="6"/></g><path class="arrow" d="M196 36 q12 22 0 44"/><text class="tag" x="10" y="100">1 · STANGE</text></svg>
+      <b>Handschale ziehen</b><span>Die Stange dreht, kippt und schiebt sich. Senkt die Hand sich, fährt der Greifer zum Tisch; zieht sie zu sich, kommt er auf sie zu.</span>
+     </div>
+     <div class="intro-step">
+      <svg class="ill" viewBox="0 0 220 110" aria-hidden="true"><rect class="shell" x="14" y="12" width="168" height="86" rx="22"/><rect class="finger" x="30" y="34" width="64" height="42" rx="12"/><g class="f-top"><rect class="finger" x="90" y="30" width="72" height="13" rx="6.5"/><ellipse class="loop" cx="150" cy="36.5" rx="13" ry="10"/><circle class="motor" cx="156" cy="36.5" r="2.6"/></g><g class="f-bottom"><rect class="finger" x="80" y="67" width="72" height="13" rx="6.5"/><ellipse class="loop" cx="140" cy="73.5" rx="13" ry="10"/><circle class="motor" cx="146" cy="73.5" r="2.6"/></g><text class="tag" x="188" y="58">3</text></svg>
+      <b>Space halten = Finger zusammendrücken</b><span>Daumen und Zeigefinger stecken in Schlaufen. Ein Sensor misst den Abstand: zusammendrücken schließt den Greifer, locker lassen öffnet ihn.</span>
+     </div>
+     <div class="intro-step">
+      <svg class="ill" viewBox="0 0 220 110" aria-hidden="true"><ellipse class="loop" cx="84" cy="38" rx="16" ry="12"/><circle class="motor" cx="91" cy="38" r="3"/><ellipse class="loop" cx="84" cy="74" rx="16" ry="12"/><circle class="motor" cx="91" cy="74" r="3"/><path class="wave" d="M110 26 q8 12 0 24 M110 62 q8 12 0 24"/><path class="wave w2" d="M122 20 q11 18 0 36 M122 56 q11 18 0 36"/><path class="wave" d="M58 26 q-8 12 0 24 M58 62 q-8 12 0 24"/><text class="tag" x="150" y="60">4 · BRUMMT</text></svg>
+      <b>Es brummt in den Fingerspitzen</b><span>Berührt oder greift der Roboter etwas, vibrieren kleine Motoren in den Schlaufen. Hier: orange Wellen am Griff, ein leiser Ton und die Anzeige rechts.</span>
+     </div>
+    </div>
+    <div class="intro-foot"><button class="primary" id="intro-start">Loslegen</button></div>
+   </div>
+  </div>
+ </main>
+
+ <aside class="panel" aria-label="Bedienteil und Einstellungen">
+  <section>
+   <h3>Hand im Griff <small>LIVE</small></h3>
+   <canvas id="hand-view" aria-label="Seitenansicht der Hand in der Handschale mit Fingerschlaufen, Vibration und Drehring"></canvas>
+   <ol class="parts">
+    <li><span class="num">2</span><span><b>Handschale</b> umschließt die Hand locker, hinten offen zum Reinschieben.</span></li>
+    <li><span class="num">3</span><span><b>Fingerschlaufen</b> für Daumen und Zeigefinger; ein Sensor misst den Abstand und damit, wie weit der Greifer zu ist.</span></li>
+    <li><span class="num">4</span><span><b>Vibration</b>: kleine Motoren in den Schlaufen brummen, sobald der Roboter etwas berührt oder greift.</span></li>
+    <li><span class="num">5</span><span><b>Drehring</b>: dreht die Besucherin das Handgelenk, dreht sich der Greifer mit.</span></li>
+   </ol>
+  </section>
+  <section>
+   <h3>Bedienteil <small id="input-source">SIMULATION</small></h3>
+   <div id="sensors"></div>
+   <div class="chip" id="reach-chip" role="status">Greifer steht da, wo die Hand hinzeigt.</div>
+   <div class="target" id="target-info"></div>
+  </section>
+  <section>
+   <h3>Übertragung <small>HAND → GREIFER</small></h3>
+   <label class="field" for="scale"><span>Maßstab <output id="scale-val">1,00 ×</output></span><input type="range" id="scale" min="0.5" max="2" step="0.05" value="1"></label>
+   <label class="field" for="direction"><span>Richtung</span><select id="direction"><option value="same" selected>Gleichgerichtet – Roboter schaut zur Besucherin</option><option value="mirror">Gespiegelt – zum Vergleich</option></select></label>
+   <label class="field" for="speed"><span>Tempo des Roboters <output id="speed-val">50 %</output></span><input type="range" id="speed" min="10" max="100" step="5" value="50"></label>
+   <div class="row"><button id="calibrate" title="Jetzige Handposition = jetzige Greiferposition">Nullpunkt setzen</button><button id="home" title="Hand in die Mitte, Nullpunkt zurücksetzen">Ausgangslage</button><button class="stop" id="pause">Pausieren</button></div>
+   <p class="note" id="scale-note">10 cm Handweg = 10 cm Greiferweg. Wie groß die Bewegungen sind, legt die Software fest: Die Stange kann kleiner oder größer sein als der Arbeitsbereich, solange die Richtung stimmt.</p>
+  </section>
+  <section>
+   <h3>Status</h3>
+   <div id="message" role="status" aria-live="polite">Handschale ziehen oder Pfeiltasten verwenden. Space halten schließt den Greifer.</div>
+   <div id="object-status">Keine Box gegriffen.</div>
+  </section>
+  <details>
+   <summary>Gelenke des Roboters</summary>
+   <div id="joints"></div>
+   <p class="note">Servo-Grenzen laut Achsendokument. Die Gelenke 1–4 sucht die Software selbst (inverse Kinematik), Gelenk 5 folgt dem Drehring, Gelenk 6 den Fingern. Handgelenk-Neigung höchstens 18°/s in der Simulation.</p>
+  </details>
+  <details>
+   <summary>USB · Roboter und Bedienteil</summary>
+   <p class="proto"><b>Roboter</b> – wie in der 3D-Steuerung: Chrome oder Edge, 115200 Baud. Nach dem Verbinden startet das Board neu (ca. 2 s), dann wird die Roboterposition gelesen. Erst danach folgt der Arm der Hand. Beim Übernehmen wird der Nullpunkt gesetzt, damit der Arm nicht springt. Fingerabstand und Drehring wirken absolut: Greifer und Werkzeug-Rotation fahren danach auf die Stellung der Hand. Meldet der Roboter Überlast, brummt es ebenfalls.</p>
+   <button id="query">Roboterposition abfragen</button>
+   <p class="proto"><b>Bedienteil</b> – 115200 Baud. Das Bedienteil schickt etwa 50-mal pro Sekunde eine Zeile <code>H drehen kippen schieben finger ring</code>: Drehen −35…35°, Kippen −5…65° (positiv = Hand tiefer), Schieben 260…560 mm (Drehpunkt bis Handschale), Fingerabstand 0…60 mm, Drehring −90…90° (optional). Beispiel: <code>H -12.5 30 410 22 15</code>. Die Seite antwortet mit <code>V 0…255</code> für die Vibrationsmotoren. Solange das Bedienteil verbunden ist, sind Maus und Tastatur für die Hand gesperrt.</p>
+   <details><summary>Arduino-Beispiel für das Bedienteil</summary><pre>// Potis an A0–A4, Vibrationsmotoren über Transistor an Pin 5 und 6.
+// Werte mit euren Sensoren kalibrieren (min/max).
+void setup() {
+  Serial.begin(115200);
+  Serial.setTimeout(5);
+  pinMode(5, OUTPUT); pinMode(6, OUTPUT);
+}
+float lin(int pin, float a, float b) {
+  return a + (b - a) * analogRead(pin) / 1023.0;
+}
+void loop() {
+  Serial.print("H ");
+  Serial.print(lin(A0, -35, 35));  Serial.print(' '); // Drehen
+  Serial.print(lin(A1, -5, 65));   Serial.print(' '); // Kippen
+  Serial.print(lin(A2, 260, 560)); Serial.print(' '); // Schieben
+  Serial.print(lin(A3, 0, 60));    Serial.print(' '); // Finger
+  Serial.println(lin(A4, -90, 90));                   // Drehring
+  while (Serial.available()) {
+    if (Serial.read() == 'V') {
+      int v = Serial.parseInt();
+      analogWrite(5, v); analogWrite(6, v);
+    }
+  }
+  delay(20);
+}</pre></details>
+   <p class="proto">Vereinfachtes Modell, kein CAD-Abbild. Boxen, Berührungen und Vibration sind eine Simulation mit Körperhüllen, kein Kollisionsschutz für die Hardware.</p>
+   <pre id="log" aria-label="USB-Protokoll"></pre>
+  </details>
+ </aside>
+</div>
+
+<script>
+// Dark Mode: helle Canvas-Farben beim Zeichnen gegen dunkle Varianten tauschen (wie in der 3D-Steuerung).
+try{(()=>{const map={"#282828":"#f3f3f3","#2a7549":"#36975e","#343434":"#e6e6e6","#456d91":"#5c89b2","#486c87":"#5e89a9","#5f5f5f":"#b4b4b4","#666666":"#acacac","#686868":"#aaaaaa","#888888":"#858585","#a8a8a8":"#606060","#c0c0c0":"#454545","#dadada":"#272727","#dbdbdb":"#262626","#ececec":"#141414","#ffffff":"#191919"},P=CanvasRenderingContext2D.prototype;for(const key of ['fillStyle','strokeStyle']){const d=Object.getOwnPropertyDescriptor(P,key);Object.defineProperty(P,key,{configurable:true,get(){return d.get.call(this)},set(v){if(typeof v==='string'&&document.documentElement.dataset.theme==='dark'&&map[v])v=map[v];d.set.call(this,v)}})}const btn=document.getElementById('theme-toggle'),sync=()=>{const dark=document.documentElement.dataset.theme==='dark';btn.textContent=dark?'☀':'☾';btn.title=dark?'Hellen Modus aktivieren':'Dunklen Modus aktivieren';btn.setAttribute('aria-pressed',String(dark))};btn.onclick=()=>{const t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('robot-theme',t)}catch(e){}sync()};matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',e=>{let saved=null;try{saved=localStorage.getItem('robot-theme')}catch(_){}if(!saved){document.documentElement.dataset.theme=e.matches?'dark':'light';sync()}});sync()})()}catch(e){}
+</script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+
+// ===== Roboter: Kinematik aus robot-control-3d.html (Maße in mm; Welt: X vom Brett weg, Z hoch) =====
+const V={add:(a,b)=>a.map((v,i)=>v+b[i]),sub:(a,b)=>a.map((v,i)=>v-b[i]),mul:(a,s)=>a.map(v=>v*s),dot:(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],len:a=>Math.hypot(...a),unit:a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l)},mix:(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t)};
+const RAD=Math.PI/180,DEG=180/Math.PI,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const baseAxis='z',flipped=true,WALL=true;
+const AXES=[['Basis · Rotation',800,3450],['Schulter',900,3200],['Ellbogen',1000,3050],['Handgelenk · Neigung',900,3200],['Werkzeug · Rotation',180,3900],['Greifer',1230,2600]];
+const MOUNT={center:[-60,0,-172.25],size:[20,150,424.5]};
+const FLOOR_Z=-385,ROOM_Z=FLOOR_Z-750; // Tischplatte des Roboters / Hallenboden (Tisch 75 cm hoch)
+const START=[1929,1000,3100,1200,2056,2445];
+const angle=(i,value)=>(AXES[i][1]+value/4095*(AXES[i][2]-AXES[i][1])-2048)*360/4096;
+const raw=(i,a)=>Math.round(clamp((2048+a*4096/360-AXES[i][1])/(AXES[i][2]-AXES[i][1])*4095,0,4095));
+const unitsPerDeg=i=>4095/((AXES[i][2]-AXES[i][1])*360/4096);
+const JOINT_SPEED=[25,25,25,18,30,30];let speedScale=.5;const JS=i=>JOINT_SPEED[i]*speedScale*2;
+const BOUNDS=AXES.map((_,i)=>[angle(i,0),angle(i,4095)]);
+const F=p=>[p[2],-p[1],-p[0]],Finv=q=>[-q[2],-q[1],q[0]];
+function geometry(values,arm=false){const turn=angle(0,values[0])*RAD;const rotate=p=>baseAxis==='x'?[p[0],p[1]*Math.cos(turn)-p[2]*Math.sin(turn),p[1]*Math.sin(turn)+p[2]*Math.cos(turn)]:[p[0]*Math.cos(turn)-p[1]*Math.sin(turn),p[0]*Math.sin(turn)+p[1]*Math.cos(turn),p[2]];
+ const n=rotate([0,1,0]);let tilt=(90-angle(1,values[1]))*RAD;const points=[[0,0,0]],directions=[];
+ [115,135,165].forEach((l,i)=>{if(i===1)tilt-=(90+angle(2,values[2]))*RAD;if(i===2)tilt-=angle(3,values[3])*RAD;const d=rotate([Math.cos(tilt),0,Math.sin(tilt)]);directions.push(d);points.push(V.add(points.at(-1),V.mul(d,l)))});
+ const out={points,directions,n,tilt:tilt*DEG,yaw:turn*DEG,baseDirection:baseAxis==='x'?[1,0,0]:[0,0,1]};if(flipped&&!arm){out.points=points.map(F);out.directions=directions.map(F);out.n=F(n);out.baseDirection=F(out.baseDirection)}return out}
+const JAW_OFFSET=-90;
+function jawGeometry(values){const g=geometry(values),dir=g.directions[2],t=(angle(4,values[4])+JAW_OFFSET)*RAD,perp=V.unit(V.cross(dir,g.n)),normal=V.add(V.mul(g.n,Math.cos(t)),V.mul(perp,Math.sin(t))),hinge=V.cross(dir,normal),at=(x,y)=>V.add(g.points[2],V.add(V.mul(dir,x),V.mul(normal,y))),pivot=at(91,12),opening=values[5]/4095*60*RAD;
+ const swung=(x,y)=>V.add(pivot,V.add(V.mul(dir,x*Math.cos(opening)-y*Math.sin(opening)),V.mul(normal,x*Math.sin(opening)+y*Math.cos(opening))));
+ return {fixed:[at(91,-12),at(131,-12),at(165,-12)],moving:[pivot,swung(40,0),swung(74,-24)],hinge,normal,dir}}
+function toolCamera(values){const g=geometry(values),j=jawGeometry(values);return {origin:V.sub(g.points[3],V.mul(j.dir,65)),forward:j.dir,right:V.mul(j.normal,-1),up:j.hinge}}
+function front(values,wall){if(values.length!==6||values.some(v=>!Number.isFinite(v)||v<0||v>4095))return false;const g=geometry(values);return g.points.every(p=>(!wall||p[0]>=-.5)&&p[2]>=FLOOR_Z+.5)&&!selfContact(g)}
+function selfContact(g){const p=g.points,d=g.directions;
+ const links=[[V.add(p[0],V.mul(d[0],25)),V.sub(p[1],V.mul(d[0],30))],[V.add(p[1],V.mul(d[1],30)),V.sub(p[2],V.mul(d[1],25))],[V.add(p[2],V.mul(d[2],32)),V.sub(p[3],V.mul(d[2],35))]];
+ const distance=(p,q,r,s)=>{const u=V.sub(q,p),v=V.sub(s,r),w=V.sub(p,r),a=V.dot(u,u),b=V.dot(u,v),c=V.dot(v,v),d=V.dot(u,w),e=V.dot(v,w),den=a*c-b*b;let t=den>1e-8?clamp((b*e-c*d)/den,0,1):0,h=(b*t+e)/c;if(h<0){h=0;t=clamp(-d/a,0,1)}else if(h>1){h=1;t=clamp((b-d)/a,0,1)}return V.len(V.sub(V.add(p,V.mul(u,t)),V.add(r,V.mul(v,h))))};
+ for(let i=0;i<links.length;i++)for(let j=i+1;j<links.length;j++)if(distance(...links[i],...links[j])<20)return true;return false}
+function safePath(a,b,wall){for(let i=1;i<=12;i++)if(!front(V.mix(a,b,i/12),wall))return false;return true}
+function solve(target,values,wall){if(flipped)target=Finv(target);const current=geometry(values,true),initial=[1,2,3].map(i=>angle(i,values[i]));let best={values:values.slice(),error:V.len(V.sub(current.points[3],target)),cost:Infinity};
+ const radius=baseAxis==='x'?Math.hypot(target[1],target[2]):Math.hypot(target[0],target[1]);
+ const rotations=baseAxis==='x'?(radius<.001?[{turn:current.yaw,r:target[0],z:0}]:[{turn:Math.atan2(-target[1],target[2])*DEG,r:target[0],z:radius},{turn:Math.atan2(target[1],-target[2])*DEG,r:target[0],z:-radius}]):[{turn:radius>.001?Math.atan2(target[1],target[0])*DEG:current.yaw,r:radius,z:target[2]}];
+ for(const rotation of rotations){const turn=clamp(rotation.turn,...BOUNDS[0]),r=rotation.r,z=rotation.z;
+  for(const phi of [current.tilt,...Array.from({length:181},(_,i)=>i*2-180)]){const x=r-165*Math.cos(phi*RAD),y=z-165*Math.sin(phi*RAD),c=clamp((x*x+y*y-115*115-135*135)/(2*115*135),-1,1),delta=-Math.acos(c),a=Math.atan2(y,x)-Math.atan2(135*Math.sin(delta),115+135*Math.cos(delta));let q=[90-a*DEG,-delta*DEG-90,(a+delta)*DEG-phi];q=q.map((v,i)=>{while(v>180)v-=360;while(v< -180)v+=360;return clamp(v,...BOUNDS[i+1])});const candidate=values.slice();candidate[0]=raw(0,turn);q.forEach((v,i)=>candidate[i+1]=raw(i+1,v));if(!front(candidate,wall))continue;const w=geometry(candidate,true),error=V.len(V.sub(w.points[3],target)),continuity=q.reduce((sum,v,i)=>sum+(v-initial[i])**2,(turn-current.yaw)**2);const cost=error*error*35+continuity*.04;if(cost<best.cost)best={values:candidate,error,cost}}
+ }
+ return best}
+
+// ===== Ausstellung: Tisch, Bedienteil (Stange + Handschale), Besucherin =====
+// Der Roboter hängt am Brett und schaut nach +X. Die Besucherin steht bei +X und schaut zum Roboter.
+const TABLE={center:[170,0,FLOOR_Z-375],size:[500,860,750]};
+const PED={x:760,w:280,d:300,h:850};
+const ROD={pivot:[PED.x,0,ROOM_Z+1250],length:720,yaw:[-35,35],pitch:[-5,65],slide:[260,560]};
+const FINGER_MM=60;
+const HAND_HOME={yaw:0,pitch:25,slide:420,finger:1,ring:0};
+const hand={...HAND_HOME};          // Zustand des Bedienteils (Simulation oder USB)
+const VIS={x:1500,y:-120};          // Standpunkt der Besucherin (folgt der Hand)
+function rodFrame(h=hand){const y=h.yaw*RAD,t=h.pitch*RAD,u=[Math.cos(t)*Math.cos(y),Math.cos(t)*Math.sin(y),-Math.sin(t)],side=[-Math.sin(y),Math.cos(y),0],up0=V.cross(u,side),r=h.ring*RAD;return {u,side,up0,sideR:V.add(V.mul(side,Math.cos(r)),V.mul(up0,Math.sin(r))),upR:V.sub(V.mul(up0,Math.cos(r)),V.mul(side,Math.sin(r)))}}
+function handPos(h=hand){return V.add(ROD.pivot,V.mul(rodFrame(h).u,h.slide))}
+function wristPoint(){return V.add(handPos(),V.mul(rodFrame().u,74))}
+function setHandFromPoint(D){const d=V.sub(D,ROD.pivot),hz=Math.hypot(d[0],d[1]);if(hz<1)return;if(d[0]>30)hand.yaw=clamp(Math.atan2(d[1],d[0])*DEG,...ROD.yaw);hand.pitch=clamp(Math.atan2(-d[2],hz)*DEG,...ROD.pitch);hand.slide=clamp(V.len(d),...ROD.slide)}
+// Übertragung: Greifer-Ziel = Nullpunkt + Maßstab · (Hand − Hand-Nullpunkt), gleichgerichtet in Weltkoordinaten.
+let scale=1,mirror=false;const calib={H0:handPos(HAND_HOME),G0:[0,0,0]};let G_HOME=[0,0,0];
+function handTarget(){const d=V.sub(handPos(),calib.H0),m=mirror?[-1,-1,1]:[1,1,1];return V.add(calib.G0,d.map((v,i)=>v*m[i]*scale))}
+
+// ===== Zustand =====
+let pose=START.slice(),goal=null,paused=false,stalled=0,lastFrame=0,reach='ok',followD=null,followGaveUp=false;
+let heldObject=null,previousGrip=START[5],boxCapture=null,propsVisible=true,GRIP_OPEN=START[5];
+let vib=0,vibUntil=0,lastPhoneVib=0,lastVibSent=-1,lastVibSendTime=0;
+let soundOn=true,audio=null,buzzOsc=null,buzzGain=null;
+let handSource='sim',handDragged=false,handScreen=null,gesture=null,cameraPan=false;
+const held=new Set();let shiftHeld=false,squeezeKey=false,squeezeBtn=false;
+const pointers=new Map();
+let port=null,writer=null,reader=null,pending=null,actual=null,desired=null,connected=false,ready=false,positionSynced=false,syncRequested=false,syncReading=false,connecting=false,serialSession=0,lastQuery=0,syncTries=0;
+let hPort=null,hWriter=null,hReader=null,handConnected=false,handConnecting=false,handSession=0,handLastData=0,handFirst=false;
+
+// ===== Darstellung (Renderer aus robot-control-3d.html) =====
+let canvas=$('scene'),ctx=canvas.getContext('2d');
+const toolCanvas=$('tool-camera'),toolCtx=toolCanvas.getContext('2d'),handCanvas=$('hand-view'),handCtx=handCanvas.getContext('2d');
+let width=800,height=650,ratio=1;
+const VIEWS={overview:{focus:[620,0,-430],azimuth:.9,elevation:.38,distance:3000},visitor:{focus:[250,0,-280],azimuth:.3,elevation:.42,distance:1700},side:{focus:[760,0,-420],azimuth:Math.PI/2,elevation:.08,distance:3000},top:{focus:[700,0,-400],azimuth:0,elevation:1.52,distance:3600},robot:{focus:[170,0,-300],azimuth:.55,elevation:.42,distance:1150}};
+const camera={...VIEWS.overview,focus:VIEWS.overview.focus.slice()};
+let activeView='overview',camTween=null;
+let eye,forward,right,up,focal;
+function message(s){const el=$('message');if(el.textContent!==s)el.textContent=s}
+function log(s){const el=$('log');el.textContent=(el.textContent+s+'\n').split('\n').slice(-100).join('\n');el.scrollTop=el.scrollHeight}
+function cameraFrame(){eye=V.add(camera.focus,[Math.cos(camera.azimuth)*Math.cos(camera.elevation)*camera.distance,Math.sin(camera.azimuth)*Math.cos(camera.elevation)*camera.distance,Math.sin(camera.elevation)*camera.distance]);forward=V.unit(V.sub(camera.focus,eye));right=V.unit(V.cross(forward,[0,0,1]));up=V.cross(right,forward);focal=Math.min(width,height)*1.15}
+function project(p){const v=V.sub(p,eye),d=V.dot(v,forward);if(d<1)return null;return [width/2+V.dot(v,right)*focal/d,height/2-V.dot(v,up)*focal/d,d]}
+function ray(x,y){return {origin:eye.slice(),direction:V.unit(V.add(forward,V.add(V.mul(right,(x-width/2)/focal),V.mul(up,-(y-height/2)/focal))))}}
+function intersectPlane(r,origin,normal){const d=V.dot(r.direction,normal);if(Math.abs(d)<1e-5)return null;const t=V.dot(V.sub(origin,r.origin),normal)/d;return t>0?V.add(r.origin,V.mul(r.direction,t)):null}
+function resize(){const box=canvas.getBoundingClientRect();width=Math.max(1,box.width);height=Math.max(1,box.height);ratio=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);ctx.setTransform(ratio,0,0,ratio,0,0)}new ResizeObserver(resize).observe(canvas);resize();
+// Farben: Arm hell = schwarz, dunkel = weiß (wie in der 3D-Steuerung). Bedienteil: Schale creme, Drehring mint, Schlaufen braun.
+const ORANGE=[52,52,52],ORANGE_LIGHT=[72,72,72],DARK=[125,125,125],METAL=[175,175,175],WOOD=[212,212,212],BLACK=[52,52,52],BLACK_LIGHT=[72,72,72];
+const TABLE_C=[235,235,235],PEDESTAL_C=[218,218,218],PLATE_C=[190,190,190],POST_C=[120,120,120],ROD_C=[140,140,140],SLEEVE_C=[96,96,96],SHELL_C=[250,236,214],RING_C=[164,222,200],LOOP_C=[160,96,34],LOOP_HOT=[237,126,42],VISITOR_C=[178,178,178];
+let robotTheme='light';
+function syncRobotTheme(){const t=document.documentElement.dataset.theme==='dark'?'dark':'light';if(t===robotTheme)return;robotTheme=t;const d=t==='dark',set=(a,l,k)=>a.splice(0,3,...(d?k:l));
+ set(ORANGE,[52,52,52],[252,252,252]);set(BLACK,[52,52,52],[252,252,252]);set(ORANGE_LIGHT,[72,72,72],[238,238,238]);set(BLACK_LIGHT,[72,72,72],[238,238,238]);set(DARK,[125,125,125],[110,110,110]);set(METAL,[175,175,175],[160,160,160]);set(WOOD,[212,212,212],[62,62,62]);
+ set(TABLE_C,[235,235,235],[44,44,44]);set(PEDESTAL_C,[218,218,218],[60,60,60]);set(PLATE_C,[190,190,190],[84,84,84]);set(POST_C,[120,120,120],[150,150,150]);set(ROD_C,[140,140,140],[172,172,172]);set(SLEEVE_C,[96,96,96],[122,122,122]);set(SHELL_C,[250,236,214],[232,212,182]);set(RING_C,[164,222,200],[96,190,156]);set(LOOP_C,[160,96,34],[214,140,70]);set(VISITOR_C,[178,178,178],[92,92,92])}
+const IDENTITY=[[1,0,0],[0,1,0],[0,0,1]];
+const WORKSPACE=[{home:[80,-20,FLOOR_Z+22],size:[32,32,44],color:[255,107,94],name:'A'},{home:[125,-65,FLOOR_Z+24],size:[36,36,48],color:[99,102,241],name:'B'},{home:[150,5,FLOOR_Z+20],size:[28,28,40],color:[251,191,36],name:'C'}].map(o=>({...o,p:o.home.slice(),axes:IDENTITY.map(v=>v.slice()),velocity:0}));
+let meshLayer='robot',solidCapture=null,collisionPart='arm',polygons=[];
+function face(points,color){const normal=V.unit(V.cross(V.sub(points[1],points[0]),V.sub(points[2],points[0]))),center=points.reduce((sum,p)=>V.add(sum,V.mul(p,1/points.length)),[0,0,0]);const shade=Math.abs(V.dot(normal,V.unit([.3,-.5,.9]))),min=robotTheme==='dark'&&(meshLayer==='robot'||meshLayer==='gripper')?.8:meshLayer==='handle'?.72:.5,light=min+(1-min)*shade;polygons.push({points,layer:meshLayer,color:color.map(v=>Math.round(v*light)),depth:V.dot(V.sub(center,eye),forward)})}
+function box(center,sizes,axes=IDENTITY,color=ORANGE){if(solidCapture){solidCapture.push({p:center.slice(),half:sizes.map(v=>v/2),axes:axes.map(a=>a.slice()),part:collisionPart});return}const vertices=[];for(const z of [-1,1])for(const y of [-1,1])for(const x of [-1,1])vertices.push(V.add(center,V.add(V.mul(axes[0],sizes[0]*x/2),V.add(V.mul(axes[1],sizes[1]*y/2),V.mul(axes[2],sizes[2]*z/2)))));[[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]].forEach(f=>face(f.map(i=>vertices[i]),color))}
+function segment(a,b,width,depth,n,color=ORANGE){const d=V.unit(V.sub(b,a)),normal=V.unit(n),third=V.unit(V.cross(d,normal));box(V.mix(a,b,.5),[V.len(V.sub(b,a)),width,depth],[d,normal,third],color)}
+function cylinder(center,axis,radius,length,color=ORANGE,steps=18){const d=V.unit(axis),n=V.unit(V.cross(d,Math.abs(d[2])<.9?[0,0,1]:[0,1,0])),m=V.cross(d,n),rings=[[],[]];if(solidCapture){solidCapture.push({p:center.slice(),half:[radius,radius,length/2],axes:[n,m,d],part:collisionPart});return}for(let i=0;i<steps;i++){const a=i*Math.PI*2/steps,v=V.add(V.mul(n,Math.cos(a)*radius),V.mul(m,Math.sin(a)*radius));rings[0].push(V.add(V.add(center,V.mul(d,-length/2)),v));rings[1].push(V.add(V.add(center,V.mul(d,length/2)),v))}face(rings[0],color);face([...rings[1]].reverse(),color);for(let i=0;i<steps;i++)face([rings[0][i],rings[0][(i+1)%steps],rings[1][(i+1)%steps],rings[1][i]],color)}
+// Glied zwischen zwei Punkten mit sauber senkrechter Querachse (für Arme der Besucherin).
+function limb(a,b,w,color){const d=V.sub(b,a);if(V.len(d)<1)return;cylinder(V.mix(a,b,.5),d,w/2,V.len(d),color,10)}
+function model(g){meshLayer='robot';collisionPart='arm';const {points:p,directions:d,n}=g;
+ meshLayer='mount';box(MOUNT.center,MOUNT.size,undefined,WOOD);meshLayer='robot';box([-32,0,0],[36,65,82],undefined,ORANGE);cylinder([-14,0,0],g.baseDirection,27,38,DARK);box([-9,0,0],[28,54,14],undefined,ORANGE_LIGHT);
+ p.slice(0,3).forEach((q,i)=>{const radius=[21,18,15][i],length=[54,46,36][i];cylinder(q,n,radius,length,DARK);[-1,1].forEach(side=>{cylinder(V.add(q,V.mul(n,side*length/2)),n,radius+2,7,i===2?BLACK_LIGHT:ORANGE_LIGHT);cylinder(V.add(q,V.mul(n,side*(length/2+4))),n,5,3,METAL,12)})});
+ for(let i=0;i<2;i++){const a=V.add(p[i],V.mul(d[i],15)),b=V.sub(p[i+1],V.mul(d[i],15));[-1,1].forEach(side=>segment(V.add(a,V.mul(n,side*15)),V.add(b,V.mul(n,side*15)),8,22,n,i?ORANGE_LIGHT:ORANGE));segment(V.mix(a,b,.45),V.mix(a,b,.65),26,18,n,DARK)}
+ meshLayer='gripper';collisionPart='tool';const dir=d[2],t=angle(4,pose[4])*RAD,perp=V.unit(V.cross(dir,n)),rollN=V.add(V.mul(n,Math.cos(t)),V.mul(perp,Math.sin(t))),rollUp=V.cross(dir,rollN);const at=s=>V.add(p[2],V.mul(dir,s));segment(at(0),at(42),22,24,n,BLACK);cylinder(at(45),dir,19,22,DARK);cylinder(at(56),dir,21,7,BLACK_LIGHT);box(at(77),[37,43,23],[dir,rollN,rollUp],BLACK);
+ collisionPart='jaws';const jaws=jawGeometry(pose);jaws.fixed.slice(1).forEach((point,i)=>segment(jaws.fixed[i],point,8,10,jaws.hinge,BLACK));jaws.moving.slice(1).forEach((point,i)=>segment(jaws.moving[i],point,8,10,jaws.hinge,BLACK_LIGHT));cylinder(jaws.moving[0],jaws.hinge,7,27,DARK,12);box(jaws.fixed[0],[14,12,20],[dir,rollN,rollUp],BLACK);
+ collisionPart='camera';const cam=toolCamera(pose);box(V.sub(cam.origin,V.mul(dir,14)),[18,18,12],[dir,rollN,rollUp],DARK);cylinder(V.sub(cam.origin,V.mul(dir,4)),dir,5,4,[83,121,149],12);meshLayer='robot'}
+function tableMesh(){meshLayer='bg';box(TABLE.center,TABLE.size,IDENTITY,TABLE_C);meshLayer='robot'}
+// Bedienteil: Sockel, drehbarer Pfosten, Kippachse mit Gleitbuchse, Stange, Handschale mit Drehring am Handgelenk.
+function consoleMesh(){const h=hand,f=rodFrame(h),P=ROD.pivot,s=h.slide,at=d=>V.add(P,V.mul(f.u,d)),yawDir=[Math.cos(h.yaw*RAD),Math.sin(h.yaw*RAD),0],baseZ=ROOM_Z+PED.h+16;
+ meshLayer='bg';box([PED.x,0,ROOM_Z+PED.h/2],[PED.w,PED.d,PED.h],IDENTITY,PEDESTAL_C);box([PED.x,0,ROOM_Z+PED.h+8],[230,230,16],IDENTITY,PLATE_C);
+ meshLayer='console';
+ cylinder([P[0],P[1],baseZ+16],[0,0,1],36,32,PLATE_C,20);box(V.add([P[0],P[1],baseZ+16],V.mul(yawDir,36)),[16,12,30],[yawDir,f.side,[0,0,1]],SLEEVE_C);
+ const postTop=P[2]-30;cylinder([P[0],P[1],(baseZ+postTop)/2],[0,0,1],15,postTop-baseZ,POST_C,12);
+ [-1,1].forEach(sg=>box(V.add(P,V.add(V.mul(f.side,sg*36),[0,0,-14])),[54,10,74],[yawDir,f.side,[0,0,1]],POST_C));
+ cylinder(P,f.side,11,92,SLEEVE_C,12);box(P,[110,44,44],[f.u,f.side,V.cross(f.u,f.side)],SLEEVE_C);
+ const back=-(ROD.length-s),frontEnd=s-58;cylinder(at((back+frontEnd)/2),f.u,10,frontEnd-back,ROD_C,10);cylinder(at(back),f.u,17,26,SLEEVE_C,12);
+ const j=vib>.03?7*vib:0,H=V.add(at(s),[(Math.random()-.5)*j,(Math.random()-.5)*j,(Math.random()-.5)*j]),atH=d=>V.add(H,V.mul(f.u,d));
+ meshLayer='handle';
+ box(H,[116,92,74],[f.u,f.sideR,f.upR],SHELL_C);
+ cylinder(atH(64),f.u,38,14,RING_C,20);
+ const gap=8+18*h.finger;[-1,1].forEach(sg=>cylinder(V.add(atH(-30),V.add(V.mul(f.sideR,48),V.mul(f.upR,sg*gap))),f.sideR,9,6,vib>.05?LOOP_HOT:LOOP_C,12));
+ meshLayer='robot'}
+// Zweigelenk-Arm der Besucherin: Schulter → Ellbogen → Handgelenk im Drehring.
+function armIK(S,W,a=310,b=300,pole=[.3,.7,-1]){const d0=V.sub(W,S),dist=clamp(V.len(d0),Math.abs(a-b)+1,a+b-1),dir=V.unit(d0),cosA=clamp((a*a+dist*dist-b*b)/(2*a*dist),-1,1),sinA=Math.sqrt(1-cosA*cosA);let p=V.sub(pole,V.mul(dir,V.dot(pole,dir)));p=V.len(p)<1e-6?[0,0,-1]:V.unit(p);return V.add(S,V.add(V.mul(dir,a*cosA),V.mul(p,a*sinA)))}
+function visitorMesh(){meshLayer='visitor';const C=VISITOR_C,at=(x,y,z)=>[VIS.x+x,VIS.y+y,ROOM_Z+z];
+ [-1,1].forEach(s=>cylinder(at(0,s*72,400),[0,0,1],58,800,C,12));cylinder(at(0,0,1090),[0,0,1],140,580,C,16);cylinder(at(0,0,1395),[0,0,1],40,50,C,10);cylinder(at(0,0,1520),[0,0,1],88,190,C,16);
+ const Sr=at(-10,165,1340),W=wristPoint(),E=armIK(Sr,W);limb(Sr,E,68,C);limb(E,W,58,C);
+ const Sl=at(-10,-165,1340),El=at(-25,-185,1050),Wl=at(-55,-190,790);limb(Sl,El,68,C);limb(El,Wl,58,C);
+ meshLayer='robot'}
+function clippedLine(a,b){const near=4,da=V.dot(V.sub(a,eye),forward),db=V.dot(V.sub(b,eye),forward);if(da<near&&db<near)return null;if(da<near)a=V.mix(a,b,(near-da)/(db-da));else if(db<near)b=V.mix(a,b,(near-da)/(db-da));return [a,b]}
+function stroke3D(a,b,color,lineWidth=1,dash=[]){const clip=clippedLine(a,b);if(!clip)return;const p=project(clip[0]),q=project(clip[1]);if(!p||!q)return;ctx.beginPath();ctx.setLineDash(dash);ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.strokeStyle=color;ctx.lineWidth=lineWidth;ctx.stroke();ctx.setLineDash([])}
+function clipPolygon(points){const out=[],near=4;for(let i=0;i<points.length;i++){const a=points[(i+points.length-1)%points.length],b=points[i],da=V.dot(V.sub(a,eye),forward),db=V.dot(V.sub(b,eye),forward);if((da>=near)!==(db>=near))out.push(V.mix(a,b,(near-da)/(db-da)));if(db>=near)out.push(b)}return out}
+function roomGrid(){const z=ROOM_Z;for(let x=-600;x<=2200;x+=100)stroke3D([x,-1100,z],[x,1100,z],'#dadada',.6);for(let y=-1100;y<=1100;y+=100)stroke3D([-600,y,z],[2200,y,z],'#dadada',.6)}
+function tableGrid(){if(eye[2]<FLOOR_Z)return;const z=FLOOR_Z+.5,[cx,cy]=TABLE.center,hx=TABLE.size[0]/2,hy=TABLE.size[1]/2;for(let x=cx-hx;x<=cx+hx+.1;x+=50)stroke3D([x,cy-hy,z],[x,cy+hy,z],'#c0c0c0',.5);for(let y=cy-hy;y<=cy+hy+.1;y+=50)stroke3D([cx-hx,y,z],[cx+hx,y,z],'#c0c0c0',.5)}
+function drawPolygons(list,ghost,{hideGripper=false,visitorFade=0}={}){list.sort((a,b)=>b.depth-a.depth);for(const f of list){if(hideGripper&&f.layer==='gripper')continue;const clipped=clipPolygon(f.points);if(clipped.length<3)continue;const p=clipped.map(project);if(p.some(x=>!x))continue;ctx.beginPath();p.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();const fade=f.layer==='mount'?ghost:f.layer==='robot'||f.layer==='gripper'?Math.min(.8,ghost*1.15):f.layer==='visitor'?visitorFade:0;ctx.fillStyle=`rgba(${f.color},${1-fade*.994})`;ctx.fill();ctx.strokeStyle=`rgba(36,36,36,${Math.max(0,.16-fade*.14)})`;ctx.lineWidth=.6;ctx.stroke()}}
+function buildScene(){polygons=[];tableMesh();consoleMesh();visitorMesh();model(geometry(pose));workspace()}
+function pill(t,x,y,center=false){ctx.save();ctx.setLineDash([]);ctx.font='600 11px -apple-system,sans-serif';const tw=ctx.measureText(t).width;if(center)x-=tw/2;ctx.fillStyle='#ffffff';ctx.strokeStyle='#343434';ctx.lineWidth=1;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x-7,y-13,tw+14,19,9);else ctx.rect(x-7,y-13,tw+14,19);ctx.fill();ctx.stroke();ctx.fillStyle='#282828';ctx.fillText(t,x,y);ctx.restore()}
+function rearTransparency(){return Math.min(.7,Math.max(clamp((-70-eye[0])/140,0,1),clamp((Math.sin(camera.elevation)-.5)/.4,0,1)))}
+function draw(){cameraFrame();ctx.clearRect(0,0,width,height);roomGrid();const ghost=rearTransparency();buildScene();
+ // Besucherin durchsichtig, wenn sie zwischen Kamera und Szene steht (z. B. Blick über die Schulter).
+ const vc=V.sub([VIS.x,VIS.y,ROOM_Z+1100],eye),vt=V.dot(vc,forward),visitorFade=vt>0&&vt<V.len(V.sub(camera.focus,eye))&&V.len(V.sub(vc,V.mul(forward,vt)))<650?.78:0;
+ drawPolygons(polygons.filter(f=>f.layer==='bg'),ghost);tableGrid();drawPolygons(polygons.filter(f=>f.layer!=='bg'),ghost,{visitorFade});
+ basketNet();boxLabels(10);if(camera.elevation<1.25)sceneLabels();couplingArc();targetMarker();gripMarker();vibArcs();handGizmo()}
+function boxLabels(size){if(!propsVisible)return;ctx.font=size+'px monospace';WORKSPACE.forEach(o=>{const p=project(V.add(o.p,[0,0,objectExtent(o,[0,0,1])+10]));if(p){ctx.fillStyle=o===heldObject?'#2a7549':'#686868';ctx.fillText(o===heldObject?o.name+' ✓':o.name,p[0],p[1])}})}
+function sceneLabels(){ctx.save();ctx.font='600 10px ui-monospace,monospace';ctx.textAlign='center';ctx.fillStyle='#686868';[['ROBOTER',[170,0,ROOM_Z]],['BEDIENTEIL',[PED.x,0,ROOM_Z]],['BESUCHERIN',[VIS.x,VIS.y,ROOM_Z]]].forEach(([t,p])=>{const q=project(p);if(q)ctx.fillText(t,q[0],q[1]+16)});ctx.restore()}
+// Gestrichelter Bogen von der Hand zum Greifer: „Greifer macht, was die Hand macht“.
+function couplingArc(){const a=project(handPos()),b=project(gripFrame().anchor);if(!a||!b)return;const len=Math.hypot(b[0]-a[0],b[1]-a[1]);if(len<60)return;const mx=(a[0]+b[0])/2,my=Math.min(a[1],b[1])-Math.max(40,len*.28);ctx.save();ctx.setLineDash([4,5]);ctx.strokeStyle='#a8a8a8';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.quadraticCurveTo(mx,my,b[0],b[1]);ctx.stroke();ctx.setLineDash([]);
+ const t=.93,qx=(1-t)*(1-t)*a[0]+2*(1-t)*t*mx+t*t*b[0],qy=(1-t)*(1-t)*a[1]+2*(1-t)*t*my+t*t*b[1],ang=Math.atan2(b[1]-qy,b[0]-qx);ctx.beginPath();ctx.moveTo(b[0]-Math.cos(ang-.45)*9,b[1]-Math.sin(ang-.45)*9);ctx.lineTo(b[0],b[1]);ctx.lineTo(b[0]-Math.cos(ang+.45)*9,b[1]-Math.sin(ang+.45)*9);ctx.stroke();
+ if(activeView==='side'&&len>260){ctx.font='12px -apple-system,sans-serif';ctx.fillStyle='#686868';ctx.textAlign='center';ctx.fillText('Greifer macht, was die Hand macht',mx,.25*a[1]+.5*my+.25*b[1]-10)}ctx.restore()}
+function targetMarker(){const D=handTarget(),a=gripFrame().anchor,dist=V.len(V.sub(D,a));if(dist<8)return;stroke3D(a,D,'#686868',1,[2,4]);const p=project(D);if(!p)return;ctx.save();ctx.strokeStyle='#686868';ctx.setLineDash([3,4]);ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(p[0],p[1],11,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);if(dist>20){ctx.font='10px ui-monospace,monospace';ctx.fillStyle='#686868';ctx.fillText(Math.round(dist)+' mm',p[0]+14,p[1]-8)}ctx.restore()}
+function gripMarker(){const q=project(gripFrame().anchor);if(!q)return;const col=heldObject?'#2a7549':'#5b85d3';ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(q[0],q[1],7,0,Math.PI*2);ctx.stroke();ctx.fillStyle=col;ctx.beginPath();ctx.arc(q[0],q[1],2,0,Math.PI*2);ctx.fill();ctx.restore()}
+function vibArcs(){if(vib<.03)return;const p=project(handPos());if(!p)return;ctx.save();ctx.lineWidth=2;ctx.lineCap='round';for(let i=0;i<3;i++){const r=24+i*9;ctx.strokeStyle=`rgba(237,126,42,${(vib*(1-i*.28)).toFixed(3)})`;for(const o of [0,Math.PI]){ctx.beginPath();ctx.arc(p[0],p[1],r,o-.55,o+.55);ctx.stroke()}}ctx.restore()}
+// Anfasser an der Handschale: ziehen bewegt die Hand (und damit Stange und Greifer).
+function handGizmo(){const p=project(handPos());handScreen=p;if(!p)return;const usb=handSource==='usb',col=usb?'#888888':'#ed7e2a';ctx.save();ctx.beginPath();ctx.arc(p[0],p[1],12,0,Math.PI*2);ctx.fillStyle='#ffffff';ctx.globalAlpha=.8;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=col;ctx.lineWidth=2.2;ctx.stroke();ctx.beginPath();[[-1,0],[1,0],[0,-1],[0,1]].forEach(([x,y])=>{ctx.moveTo(p[0]+x*6,p[1]+y*6);ctx.lineTo(p[0]+x*17,p[1]+y*17)});ctx.stroke();ctx.beginPath();ctx.arc(p[0],p[1],2.6,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();ctx.restore();
+ if(usb)pill('Bedienteil per USB',p[0]+24,p[1]+38);else if(!handDragged&&!gesture)pill('Handschale ziehen',p[0]+24,p[1]+38)}
+// Greiferkamera-Vorschau: Blick durch den Greifpunkt, Bild aufrecht (aus der 3D-Steuerung).
+function toolView(values){const c=toolCamera(values),f=c.forward,a=gripFrame(values).anchor,radial=Math.hypot(a[0],a[1])>1?V.unit([a[0],a[1],0]):[1,0,0],w=clamp((Math.abs(f[2])-.55)/.35,0,1),hint=V.add(V.mul([0,0,1],1-w),V.mul(radial,w*(f[2]<0?1:-1)));let u=V.sub(hint,V.mul(f,V.dot(hint,f)));if(V.len(u)<1e-3)u=V.sub(radial,V.mul(f,V.dot(radial,f)));u=V.unit(u);const r=V.unit(V.cross(f,u));return {origin:V.sub(a,V.mul(f,70)),forward:f,right:r,up:V.cross(r,f)}}
+function aimGuide(){const j=jawGeometry(pose),a=gripFrame().anchor,col=heldObject?'#2a7549':'#ed7e2a';for(const jaw of [j.fixed,j.moving]){const q=[V.add(jaw[1],V.mul(j.hinge,6)),V.add(jaw[2],V.mul(j.hinge,6)),V.sub(jaw[2],V.mul(j.hinge,6)),V.sub(jaw[1],V.mul(j.hinge,6))].map(project);if(q.some(x=>!x))continue;ctx.beginPath();q.forEach((x,k)=>k?ctx.lineTo(x[0],x[1]):ctx.moveTo(x[0],x[1]));ctx.closePath();ctx.globalAlpha=.16;ctx.fillStyle=col;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.stroke()}const p=project(a);if(!p)return;ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(p[0],p[1],8,0,Math.PI*2);ctx.stroke();ctx.beginPath();[[-1,0],[1,0],[0,-1],[0,1]].forEach(([x,y])=>{ctx.moveTo(p[0]+x*2,p[1]+y*2);ctx.lineTo(p[0]+x*15,p[1]+y*15)});ctx.stroke()}
+function renderMonitor(){const rect=toolCanvas.getBoundingClientRect();if(!rect.width)return;const w=rect.width,h=w*3/5,dpr=Math.min(devicePixelRatio||1,2);if(toolCanvas.width!==Math.round(w*dpr)||toolCanvas.height!==Math.round(h*dpr)){toolCanvas.width=Math.round(w*dpr);toolCanvas.height=Math.round(h*dpr)}
+ const rig=toolView(pose),saved={ctx,width,height,eye,forward,right,up,focal,polygons};
+ try{ctx=toolCtx;ctx.setTransform(dpr,0,0,dpr,0,0);width=w;height=h;eye=rig.origin;forward=rig.forward;right=rig.right;up=rig.up;focal=w/(2*Math.tan(75*RAD/2));ctx.fillStyle='#ececec';ctx.fillRect(0,0,w,h);roomGrid();buildScene();drawPolygons(polygons.filter(f=>f.layer==='bg'),0);tableGrid();drawPolygons(polygons.filter(f=>f.layer!=='bg'),0,{hideGripper:true});boxLabels(9);aimGuide()}
+ finally{({ctx,width,height,eye,forward,right,up,focal,polygons}=saved)}}
+
+// ===== Hand im Griff (2D-Detail wie in der Skizze) =====
+function rr(g,x,y,w,h,r){g.beginPath();if(g.roundRect)g.roundRect(x,y,w,h,r);else g.rect(x,y,w,h)}
+function badge(g,n,x,y,dark){g.beginPath();g.arc(x,y,8,0,Math.PI*2);g.fillStyle=dark?'#7d70d8':'#4b3f9e';g.fill();g.fillStyle='#fbfbfb';g.font='600 10px -apple-system,sans-serif';g.textAlign='center';g.fillText(n,x,y+3.5);g.textAlign='left'}
+function drawHandPanel(){const rect=handCanvas.getBoundingClientRect();if(!rect.width)return;const w=rect.width,h=rect.height,dpr=Math.min(devicePixelRatio||1,2);if(handCanvas.width!==Math.round(w*dpr)||handCanvas.height!==Math.round(h*dpr)){handCanvas.width=Math.round(w*dpr);handCanvas.height=Math.round(h*dpr)}
+ const g=handCtx,dark=document.documentElement.dataset.theme==='dark',C=dark?{arm:'#3d3d3d',ring:'#17392e',ringLine:'#4cc59b',shell:'#3b3023',shellLine:'#c98a45',hand:'#8f8f8f',loop:'#d99a55',motor:'#ff6b5e',text:'#bdbdbd',rod:'#7a7a7a',hot:'#ff9a45'}:{arm:'#3a3a3a',ring:'#e2f4ec',ringLine:'#2f9e7a',shell:'#faecd6',shellLine:'#a0611f',hand:'#9a9a9a',loop:'#8f5216',motor:'#d9483b',text:'#555555',rod:'#8d8d8d',hot:'#ed7e2a'};
+ g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);g.lineCap='round';g.lineJoin='round';
+ const cy=h*.52,vj=vib>.03?vib:0,jit=()=>(Math.random()-.5)*2.6*vj;
+ // Unterarm und Drehring (Handgelenk)
+ g.fillStyle=C.arm;rr(g,6,cy-h*.12,w*.27,h*.24,h*.12);g.fill();
+ const ringX=w*.3,rx=Math.max(6,w*.022),ry=h*.3;g.beginPath();g.ellipse(ringX,cy,rx,ry,0,0,Math.PI*2);g.fillStyle=C.ring;g.fill();g.strokeStyle=C.ringLine;g.lineWidth=1.6;g.stroke();
+ const ra=hand.ring*RAD;g.beginPath();g.arc(ringX+rx*Math.sin(ra),cy-ry*Math.cos(ra),3.2,0,Math.PI*2);g.fillStyle=C.ringLine;g.fill();
+ // Handschale
+ const sx=w*.33,sw=w*.47,sy=h*.13,sh=h*.76;g.fillStyle=C.shell;rr(g,sx,sy,sw,sh,22);g.fill();g.strokeStyle=C.shellLine;g.lineWidth=1.5;g.stroke();
+ // Hand: Handfläche, Zeigefinger oben, Daumen unten – Abstand = Fingersensor
+ const px=w*.37,pw=w*.17;g.strokeStyle=C.hand;g.lineWidth=1.3;rr(g,px,cy-h*.19,pw,h*.38,10);g.stroke();
+ const sep=h*(.17+.3*hand.finger),iy=cy-sep/2,ty=cy+sep/2,lx=w*.7,fw=h*.1;
+ g.lineWidth=fw;g.strokeStyle=C.hand;g.globalAlpha=.55;g.beginPath();g.moveTo(px+pw-4,Math.min(iy,cy-h*.12));g.lineTo(lx,iy);g.stroke();g.beginPath();g.moveTo(px+pw*.6,Math.max(ty,cy+h*.12));g.lineTo(lx-6,ty);g.stroke();g.globalAlpha=1;
+ // Sensor zwischen den Schlaufen
+ g.lineWidth=1;g.setLineDash([2,3]);g.strokeStyle=C.shellLine;g.beginPath();g.moveTo(lx-3,iy+h*.07);g.lineTo(lx-3,ty-h*.07);g.stroke();g.setLineDash([]);
+ // Schlaufen mit Vibrationsmotor
+ for(const [yy,xx] of [[iy,lx],[ty,lx-6]]){const ex=xx+jit(),ey=yy+jit();g.beginPath();g.ellipse(ex,ey,12,h*.075,0,0,Math.PI*2);g.strokeStyle=vj?C.hot:C.loop;g.lineWidth=2+vj*1.6;g.stroke();g.beginPath();g.arc(ex+5,ey,2.6,0,Math.PI*2);g.fillStyle=C.motor;g.fill();
+  if(vj)for(let i=0;i<3;i++){g.beginPath();g.arc(ex+12,ey,8+i*5,-.7,.7);g.strokeStyle=`rgba(237,126,42,${(vj*(1-i*.3)).toFixed(3)})`;g.lineWidth=1.8;g.stroke()}}
+ // Stange
+ g.strokeStyle=C.rod;g.lineWidth=5;g.beginPath();g.moveTo(sx+sw+3,cy);g.lineTo(w-10,cy);g.stroke();
+ g.font='10px -apple-system,sans-serif';g.fillStyle=C.text;g.textAlign='right';g.fillText('zur Stange',w-8,cy-9);
+ g.fillText(Math.round(hand.finger*FINGER_MM)+' mm',w-8,cy+18);g.textAlign='center';g.fillText((hand.ring>0?'+':'')+Math.round(hand.ring)+'°',ringX,sy-2>10?sy-2:12);g.textAlign='left';
+ badge(g,'5',ringX-rx-11,cy+ry-2,dark);badge(g,'2',sx+14,sy+14,dark);badge(g,'3',lx+20,iy-h*.09,dark);badge(g,'4',lx+22,ty+h*.11,dark)}
+
+// ===== Boxen und Ablagen (Physik aus der 3D-Steuerung) =====
+const PLATFORMS=[{p:[155,-190,-100],size:[90,70,10]},{p:[200,175,-80],size:[90,70,10]}];
+const BASKET_BODIES=PLATFORMS.map(o=>({...boxSolid({...o,axes:IDENTITY}),part:'platform'}));
+function basketMesh(){meshLayer='platform';PLATFORMS.forEach(o=>{box(o.p,o.size,IDENTITY,[175,175,175]);box(V.add(o.p,[0,0,5.5]),[o.size[0]-8,o.size[1]-8,1],IDENTITY,[210,210,210])});meshLayer='robot'}
+function basketNet(){if(!propsVisible)return;PLATFORMS.forEach((o,i)=>{const p=project(V.add(o.p,[0,0,15]));if(p){ctx.font='10px monospace';ctx.fillStyle='#666666';ctx.fillText('ABLAGE '+(i+1),p[0]-24,p[1])}})}
+function workspace(){if(!propsVisible)return;meshLayer='objects';WORKSPACE.forEach(object=>box(object.p,object.size,object.axes,object===heldObject?object.color.map((c,i)=>Math.round(c*.45+[70,190,110][i]*.55)):object.color));basketMesh();meshLayer='robot'}
+function objectExtent(object,axis){return object.axes.reduce((sum,a,i)=>sum+Math.abs(V.dot(a,axis))*object.size[i]/2,0)}
+function gripFrame(values=pose){const j=jawGeometry(values),fixed=V.mix(j.fixed[1],j.fixed[2],.55),moving=V.mix(j.moving[1],j.moving[2],.55);return {anchor:V.mix(fixed,moving,.5),basis:[j.dir,j.normal,j.hinge],jaws:j,gap:V.dot(V.sub(moving,fixed),j.normal)-10}}
+function fromLocal(local,basis){return local.reduce((p,v,i)=>V.add(p,V.mul(basis[i],v)),[0,0,0])}
+function robotSolids(values){const old={pose,polygons,meshLayer,collisionPart,solidCapture};try{pose=values;solidCapture=[];model(geometry(values));return solidCapture}finally{({pose,polygons,meshLayer,collisionPart,solidCapture}=old)}}
+function boxSolid(object){return {p:object.p,half:object.size.map(v=>v/2),axes:object.axes,part:'object'}}
+function solidExtent(body,axis){return body.axes.reduce((sum,a,i)=>sum+Math.abs(V.dot(a,axis))*body.half[i],0)}
+function contact(a,b){const delta=V.sub(b.p,a.p),radius=Math.hypot(...a.half)+Math.hypot(...b.half);if(V.dot(delta,delta)>radius*radius)return null;const axes=[...a.axes,...b.axes];a.axes.forEach(x=>b.axes.forEach(y=>{const n=V.cross(x,y);if(V.len(n)>1e-5)axes.push(V.unit(n))}));let depth=Infinity,normal=null;
+ for(const n of axes){const d=V.dot(delta,n),overlap=solidExtent(a,n)+solidExtent(b,n)-Math.abs(d);if(overlap<=.05)return null;if(overlap<depth){depth=overlap;normal=V.mul(n,d>=0?1:-1)}}return {normal,depth}}
+function fingerFit(o,values){const g=geometry(values),j=jawGeometry(values),d=V.sub(o.p,g.points[2]),x=V.dot(d,j.dir),n=V.dot(d,j.normal),z=V.dot(d,j.hinge),hx=objectExtent(o,j.dir),hn=objectExtent(o,j.normal),hz=objectExtent(o,j.hinge),a=V.sub(j.moving[1],g.points[2]),b=V.sub(j.moving[2],g.points[2]),ax=V.dot(a,j.dir),bx=V.dot(b,j.dir),ay=V.dot(a,j.normal),by=V.dot(b,j.normal),t=(x-ax)/(bx-ax||1e-6),moving=ay+(by-ay)*t-5;
+ const overlap=Math.min(x+hx,165,Math.max(ax,bx))-Math.max(x-hx,115,Math.min(ax,bx));return {fixed:n-hn+7,moving:moving-n-hn,depth:overlap>=Math.min(10,hx)&&x>110&&x<174,height:Math.abs(z)<Math.max(6,hz-2),normal:j.normal}}
+function withinFingers(o,values,contactOnly=false){const fit=fingerFit(o,values);return fit.depth&&fit.height&&fit.fixed>=-4&&fit.fixed<=12&&(!contactOnly||fit.moving<=3&&fit.moving>=-8)}
+function graspCandidate(values){if(!propsVisible||connected)return null;return WORKSPACE.filter(o=>o!==heldObject&&withinFingers(o,values,true)).sort((a,b)=>V.len(V.sub(a.p,gripFrame(values).anchor))-V.len(V.sub(b.p,gripFrame(values).anchor)))[0]||null}
+function captureObject(candidate){if(!candidate||heldObject)return false;let fr=gripFrame();if(!connected){const fit=fingerFit(candidate,pose);candidate.p=V.sub(candidate.p,V.mul(fit.normal,clamp(fit.fixed,-4,12)));candidate.p[2]=Math.max(candidate.p[2],FLOOR_Z+objectExtent(candidate,[0,0,1]));let lo=0,hi=4095;for(let i=0;i<16;i++){const mid=(lo+hi)/2,v=pose.slice();v[5]=mid;if(fingerFit(candidate,v).moving<0)lo=mid;else hi=mid}pose[5]=Math.round(hi);fr=gripFrame()}
+ heldObject=candidate;candidate.velocity=0;boxCapture={grip:pose[5],offset:fr.basis.map(a=>V.dot(V.sub(candidate.p,fr.anchor),a)),axes:candidate.axes.map(a=>fr.basis.map(b=>V.dot(a,b)))};buzz(1,320);message('Box '+candidate.name+' gegriffen – es brummt in den Fingerspitzen. Finger locker lassen legt sie ab.');return true}
+function pushContact(object,hit){const h=Math.hypot(hit.normal[0],hit.normal[1]);if(h>.25){const distance=(hit.depth+.08)/h;object.p[0]+=hit.normal[0]/h*distance;object.p[1]+=hit.normal[1]/h*distance;return true}if(hit.normal[2]>.6){object.p[2]+=(hit.depth+.08)/hit.normal[2];object.velocity=0;return true}return false}
+// Wie in der 3D-Steuerung, zusätzlich: jede Berührung durch den Roboter (oder die gehaltene Box) löst das Brummen aus.
+function resolvePoseContacts(from,to){
+ if(connected)return true;
+ const snapshot=WORKSPACE.map(o=>({p:o.p.slice(),axes:o.axes.map(a=>a.slice()),velocity:o.velocity}));let touched=false;
+ const restore=()=>{WORKSPACE.forEach((o,i)=>Object.assign(o,snapshot[i]));buzz(.65,140);return false};
+ const delta=Math.max(...to.map((v,i)=>Math.abs(angle(i,v)-angle(i,from[i])))),steps=Math.max(1,Math.ceil(delta/.65));
+ for(let step=1;step<=steps;step++){
+  const values=V.mix(from,to,step/steps),bodies=robotSolids(values),prospective=!heldObject&&values[5]<Math.max(from[5],previousGrip)-.5?graspCandidate(values):null;
+  if(bodies.some(b=>b.p[2]-solidExtent(b,[0,0,1])<FLOOR_Z-.2))return restore();if(!propsVisible)continue;if(bodies.some(b=>BASKET_BODIES.some(w=>contact(b,w))))return restore();bodies.push(...BASKET_BODIES);
+  if(heldObject){const f=gripFrame(values);heldObject.p=V.add(f.anchor,fromLocal(boxCapture.offset,f.basis));heldObject.axes=boxCapture.axes.map(a=>fromLocal(a,f.basis));const heldBody=boxSolid(heldObject);if(heldBody.p[2]-solidExtent(heldBody,[0,0,1])<FLOOR_Z-.1)return restore();if(bodies.some(b=>b.part!=='jaws'&&contact(b,heldBody)))return restore();bodies.push(heldBody)}
+  let solved=false;
+  for(let iteration=0;iteration<18;iteration++){let count=0;
+   for(const o of WORKSPACE){if(o===heldObject)continue;for(const body of bodies){if(body.part==='jaws'&&(o===prospective||(!heldObject&&values[5]<from[5]&&withinFingers(o,values))))continue;const hit=contact(body,boxSolid(o));if(hit){count++;if(body.part!=='platform')touched=true;if(!pushContact(o,hit))return restore()}}}
+   for(let i=0;i<WORKSPACE.length;i++)for(let j=i+1;j<WORKSPACE.length;j++){const a=WORKSPACE[i],b=WORKSPACE[j];if(a===heldObject||b===heldObject)continue;const hit=contact(boxSolid(a),boxSolid(b));if(hit){count++;if(!pushContact(b,hit))return restore()}}
+   if(!count){solved=true;break}
+  }
+  if(!solved)return restore();
+ }
+ if(touched)buzz(.5,110);
+ return true}
+let feedbackHeld=null,grabToastTimer=0;
+function grabFeedback(object,grabbed){if(!object)return;const el=$('grab-toast');el.textContent=grabbed?'✓ Box '+object.name+' gegriffen':'Box '+object.name+' losgelassen';el.classList.toggle('release',!grabbed);el.classList.remove('pop');void el.offsetWidth;el.classList.add('show','pop');clearTimeout(grabToastTimer);grabToastTimer=setTimeout(()=>el.classList.remove('show'),grabbed?1800:1200)}
+const STANDARD_GAP=Math.max(...WORKSPACE.map(o=>Math.max(o.size[0],o.size[1])))+10;
+function gripOpenForGap(gap,values=pose){const v=values.slice();let lo=0,hi=4095;for(let i=0;i<14;i++){const mid=(lo+hi)/2;v[5]=mid;if(gripFrame(v).gap<gap)lo=mid;else hi=mid}return Math.round(hi)}
+function releaseObject(){if(!heldObject)return;heldObject.velocity=0;message('Box '+heldObject.name+' losgelassen.');heldObject=null;boxCapture=null}
+function resetObjects(){heldObject=null;feedbackHeld=null;boxCapture=null;WORKSPACE.forEach(o=>{o.p=o.home.slice();o.axes=IDENTITY.map(v=>v.slice());o.velocity=0});previousGrip=pose[5];$('object-status').textContent='Keine Box gegriffen.';$('object-status').classList.remove('held')}
+function updateObjects(dt){if(!propsVisible||connected){previousGrip=pose[5];return}let fr;const grip=pose[5],closing=grip<previousGrip-1;
+ if(heldObject&&grip>boxCapture.grip+110)releaseObject();
+ if(!heldObject&&closing)captureObject(graspCandidate(pose));
+ if(heldObject&&pose[5]<boxCapture.grip)pose[5]=boxCapture.grip;
+ if(heldObject){fr=gripFrame();heldObject.p=V.add(fr.anchor,fromLocal(boxCapture.offset,fr.basis));heldObject.axes=boxCapture.axes.map(a=>fromLocal(a,fr.basis));heldObject.p[2]=Math.max(heldObject.p[2],FLOOR_Z+objectExtent(heldObject,[0,0,1]))}
+ const fallingStart=WORKSPACE.map(o=>o.p.slice());const seconds=dt/1000;
+ WORKSPACE.forEach(o=>{if(o===heldObject)return;const half=objectExtent(o,[0,0,1]),previousBottom=o.p[2]-half;o.velocity-=9800*seconds;o.p[2]+=o.velocity*seconds;let support=FLOOR_Z;PLATFORMS.forEach(p=>{const top=p.p[2]+p.size[2]/2;if(Math.abs(o.p[0]-p.p[0])<p.size[0]/2&&Math.abs(o.p[1]-p.p[1])<p.size[1]/2&&previousBottom>=top-.5&&o.p[2]-half<=top)support=Math.max(support,top)});WORKSPACE.forEach(other=>{if(other===o||other===heldObject)return;const top=other.p[2]+objectExtent(other,[0,0,1]),overlap=Math.abs(o.p[0]-other.p[0])<objectExtent(o,[1,0,0])+objectExtent(other,[1,0,0])&&Math.abs(o.p[1]-other.p[1])<objectExtent(o,[0,1,0])+objectExtent(other,[0,1,0]);if(overlap&&previousBottom>=top-.5&&o.p[2]-half<=top)support=Math.max(support,top)});if(o.p[2]-half<=support){o.p[2]=support+half;o.velocity=0}});
+ if(WORKSPACE.some((o,i)=>o!==heldObject&&V.len(V.sub(o.p,fallingStart[i]))>.001)&&!resolvePoseContacts(pose,pose)){WORKSPACE.forEach((o,i)=>{if(o!==heldObject){o.p=fallingStart[i];o.velocity=0}})}
+ previousGrip=pose[5];if(heldObject!==feedbackHeld){grabFeedback(heldObject||feedbackHeld,!!heldObject);feedbackHeld=heldObject}const text=heldObject?'✓ Box '+heldObject.name+' im Greifer.':'Keine Box gegriffen.',st=$('object-status');if(st.textContent!==text){st.textContent=text;st.classList.toggle('held',!!heldObject)}}
+
+// ===== Vibration: Anzeige, Ton, Handy-Vibration und (falls verbunden) Motoren im Bedienteil =====
+function buzz(level,ms=120){const now=performance.now();vib=Math.max(vib,level);vibUntil=Math.max(vibUntil,now+ms);if(level>=.8&&now-lastPhoneVib>300&&navigator.userActivation?.hasBeenActive!==false){lastPhoneVib=now;try{navigator.vibrate?.(160)}catch(e){}}}
+function ensureAudio(){if(!soundOn)return;if(audio){if(audio.state==='suspended')audio.resume().catch(()=>{});return}try{audio=new (window.AudioContext||window.webkitAudioContext)();buzzOsc=audio.createOscillator();buzzOsc.type='sawtooth';buzzOsc.frequency.value=140;const lp=audio.createBiquadFilter();lp.type='lowpass';lp.frequency.value=420;buzzGain=audio.createGain();buzzGain.gain.value=0;buzzOsc.connect(lp).connect(buzzGain).connect(audio.destination);buzzOsc.start()}catch(e){audio=null}}
+function stepVibration(dt,now){if(now>vibUntil)vib=Math.max(0,vib-dt/1000*5);if(audio&&buzzGain){buzzGain.gain.setTargetAtTime(soundOn?vib*.07:0,audio.currentTime,.015);buzzOsc.frequency.setTargetAtTime(120+vib*70,audio.currentTime,.03)}
+ if(handConnected&&hWriter){const n=Math.round(vib*255);if((Math.abs(n-lastVibSent)>=10||(n===0&&lastVibSent!==0))&&now-lastVibSendTime>40){lastVibSent=n;lastVibSendTime=now;void sendHand('V '+n)}}}
+
+// ===== Hand → Roboter =====
+function calibrate(note=true){calib.H0=handPos();calib.G0=gripFrame().anchor;followD=null;followGaveUp=false;goal=null;if(note)message('Nullpunkt gesetzt: Die jetzige Handposition entspricht ab sofort der jetzigen Greiferposition.')}
+function homeAll(){if(handSource==='sim')Object.assign(hand,HAND_HOME);calib.H0=handPos(HAND_HOME);calib.G0=G_HOME.slice();followD=null;followGaveUp=false;message('Ausgangslage: Hand in der Mitte, der Greifer fährt zur Startposition über dem Tisch.')}
+function followHand(){if(paused||connected&&(!ready||!positionSynced))return;const D=handTarget();if(!followD||V.len(V.sub(D,followD))>.3){followD=D;followGaveUp=false}if(followGaveUp)return;const a=gripFrame().anchor;if(!goal&&V.len(V.sub(a,D))<2.5){reach='ok';return}const tip=geometry(pose).points[3];goal=V.add(D,V.sub(tip,a)).map(v=>clamp(v,-900,900))}
+function stepGoal(dt){if(!goal||paused||connected&&(!ready||!positionSynced))return;
+ const before=geometry(pose).points[3],result=solve(goal,pose,WALL),f=Math.min(1,...result.values.slice(0,4).map((v,i)=>dt*JS(i)/1000/Math.max(.001,Math.abs(angle(i,v)-angle(i,pose[i])))),dt*.44*speedScale/Math.max(.001,V.len(V.sub(geometry(result.values).points[3],before)))),next=pose.map((v,i)=>i<4?Math.round(v+(result.values[i]-v)*f):v);
+ const boundsClear=front(next,WALL)&&safePath(pose,next,WALL),contactsClear=boundsClear&&resolvePoseContacts(pose,next);
+ if(contactsClear){pose=next;if(connected)desired=pose.slice()}else if(!boundsClear&&geometry(next).points.some(p=>p[2]<FLOOR_Z+.5))buzz(.6,140);
+ const after=geometry(pose).points[3],error=V.len(V.sub(after,goal));stalled=V.len(V.sub(after,before))<.035?stalled+1:0;
+ reach=boundsClear&&!contactsClear?'contact':result.error>8?'limit':'moving';
+ if(error<1){goal=null;reach='ok'}else if(stalled>28){goal=null;followGaveUp=true;if(error<6)reach='ok'}}
+// Drehring → Achse 5 (Werkzeug-Rotation), Fingerabstand → Achse 6 (Greifer). Beide absolut, mit Servotempo.
+function driveTool(dt){if(paused||connected&&(!ready||!positionSynced))return;let changed=false;
+ const t4=raw(4,clamp(hand.ring,-90,90)),s4=Math.max(1,JS(4)*dt/1000*unitsPerDeg(4));
+ if(Math.abs(t4-pose[4])>=1){const next=pose.slice();next[4]=Math.round(pose[4]+clamp(t4-pose[4],-s4,s4));if(next[4]!==pose[4]){if(resolvePoseContacts(pose,next)){pose=next;changed=true}else buzz(.5,120)}}
+ let t5=Math.round(hand.finger*GRIP_OPEN);if(heldObject&&!connected)t5=Math.max(t5,boxCapture.grip);
+ const s5=Math.max(1,3.6*speedScale*dt);
+ if(Math.abs(t5-pose[5])>=1){const next=pose.slice();next[5]=Math.round(pose[5]+clamp(t5-pose[5],-s5,s5));if(next[5]!==pose[5]){if(resolvePoseContacts(pose,next)){pose=next;changed=true}else if(!(next[5]<pose[5]&&captureObject(graspCandidate(pose))))buzz(.5,120)}}
+ if(connected&&changed){if(!desired)desired=pose.slice();desired[4]=pose[4];desired[5]=pose[5]}}
+function updateSimInput(dt){if(handSource!=='sim')return;const s=dt/1000,lr=(held.has('ArrowRight')?1:0)-(held.has('ArrowLeft')?1:0),ud=(held.has('ArrowUp')?1:0)-(held.has('ArrowDown')?1:0),rg=(held.has('e')?1:0)-(held.has('q')?1:0);
+ if(lr)hand.yaw=clamp(hand.yaw+lr*40*s,...ROD.yaw);
+ if(ud){if(shiftHeld)hand.slide=clamp(hand.slide-ud*220*s,...ROD.slide);else hand.pitch=clamp(hand.pitch-ud*38*s,...ROD.pitch)}
+ if(rg)hand.ring=clamp(hand.ring+rg*90*s,-90,90);
+ hand.finger=clamp(hand.finger+((squeezeKey||squeezeBtn)?-2.4:2.4)*s,0,1)}
+function stepVisitor(dt){const W=wristPoint(),k=1-Math.exp(-dt/280);VIS.x+=(W[0]+330-VIS.x)*k;VIS.y+=(W[1]-150-VIS.y)*k}
+
+// ===== Seitenleiste =====
+const signed=v=>{const r=Math.round(v);return (r>0?'+':r<0?'−':'')+Math.abs(r)};
+const SENSORS=[
+ {n:1,name:'Drehen',get:()=>hand.yaw,min:ROD.yaw[0],max:ROD.yaw[1],center:true,fmt:v=>signed(v)+'°'},
+ {n:1,name:'Kippen',get:()=>hand.pitch,min:ROD.pitch[0],max:ROD.pitch[1],fmt:v=>Math.round(v)+'°'},
+ {n:1,name:'Schieben',get:()=>hand.slide,min:ROD.slide[0],max:ROD.slide[1],fmt:v=>Math.round(v)+' mm'},
+ {n:3,name:'Fingerabstand',get:()=>hand.finger*FINGER_MM,min:0,max:FINGER_MM,fmt:v=>Math.round(v)+' mm'},
+ {n:5,name:'Drehring',get:()=>hand.ring,min:-90,max:90,center:true,fmt:v=>signed(v)+'°'},
+ {n:4,name:'Vibration',get:()=>vib*100,min:0,max:100,vib:true,fmt:v=>v<1?'still':Math.round(v)+' %'}];
+SENSORS.forEach(s=>{const row=document.createElement('div');row.className='sensor'+(s.vib?' vib':'');row.innerHTML=`<span class="num">${s.n}</span><span class="name">${s.name}</span><output></output><div class="bar${s.center?' center':''}"><i></i></div>`;$('sensors').append(row);s.out=row.querySelector('output');s.bar=row.querySelector('.bar i')});
+const JOINTS=AXES.map((a,i)=>{const row=document.createElement('div');row.className='joint';row.innerHTML=`<span>0${i+1}</span><b style="font-weight:500">${a[0]}</b><output></output><div class="bar"><i></i></div>`;$('joints').append(row);return {out:row.querySelector('output'),bar:row.querySelector('.bar i')}});
+function setBar(el,f,center){const l=center?Math.min(.5,f):0,w=center?Math.abs(f-.5):f,L=(l*100).toFixed(1)+'%',W=(w*100).toFixed(1)+'%';if(el.style.left!==L)el.style.left=L;if(el.style.width!==W)el.style.width=W}
+function setText(el,t){if(el.textContent!==t)el.textContent=t}
+function chipState(){if(paused)return ['idle','Pausiert. Esc oder „Fortsetzen“ gibt die Steuerung frei.'];if(connected&&!positionSynced)return ['warn','Roboter verbunden: zuerst die Roboterposition übernehmen.'];if(handSource==='usb'&&performance.now()-handLastData>1500)return ['warn','Bedienteil verbunden, aber es kommen keine Werte an.'];if(reach==='contact')return ['warn','Kontakt: Der Greifer stößt an und kommt nicht weiter.'];if(reach==='limit')return ['warn','Außer Reichweite: Der Greifer steht so nah wie möglich an der Hand-Position.'];if(goal)return ['ok','Greifer folgt der Hand …'];return ['ok','Greifer steht da, wo die Hand hinzeigt.']}
+function refreshPanel(){SENSORS.forEach(s=>{const v=s.get();setText(s.out,s.fmt(v));setBar(s.bar,clamp((v-s.min)/(s.max-s.min),0,1),s.center)});
+ JOINTS.forEach((j,i)=>{setText(j.out,angle(i,pose[i]).toFixed(1)+'° · '+pose[i]);setBar(j.bar,pose[i]/4095,false)});
+ const [kind,text]=chipState(),chip=$('reach-chip');if(chip.className!=='chip '+kind)chip.className='chip '+kind;setText(chip,text);
+ const D=handTarget(),a=gripFrame().anchor;setText($('target-info'),'Ziel  X '+Math.round(D[0])+' · Y '+Math.round(D[1])+' · Z '+Math.round(D[2])+' mm\nAbstand Greifer–Ziel '+Math.round(V.len(V.sub(D,a)))+' mm');
+ setText($('input-source'),handSource==='usb'?'USB':'SIMULATION');
+ const sq=squeezeKey||squeezeBtn,b=$('squeeze');if(b.classList.contains('active')!==sq){b.classList.toggle('active',sq);b.setAttribute('aria-pressed',String(sq))}}
+$('target-info').style.whiteSpace='pre-line';
+
+// ===== Ansicht =====
+function snapCamera(){return {...camera,focus:camera.focus.slice()}}
+function markView(name){activeView=name;document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name))}
+function setView(name){const v=VIEWS[name];if(!v)return;markView(name);let az=v.azimuth;while(az-camera.azimuth>Math.PI)az-=2*Math.PI;while(az-camera.azimuth<-Math.PI)az+=2*Math.PI;camTween={from:snapCamera(),to:{...v,azimuth:az,focus:v.focus.slice()},t0:performance.now(),dur:650}}
+function stepCamera(now){if(!camTween)return;const t=clamp((now-camTween.t0)/camTween.dur,0,1),e=t*t*(3-2*t),a=camTween.from,b=camTween.to;camera.azimuth=a.azimuth+(b.azimuth-a.azimuth)*e;camera.elevation=a.elevation+(b.elevation-a.elevation)*e;camera.distance=a.distance*Math.pow(b.distance/a.distance,e);camera.focus=V.mix(a.focus,b.focus,e);if(t>=1)camTween=null}
+function manualCamera(){camTween=null;if(activeView)markView(null)}
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{setView(b.dataset.view);canvas.focus({preventScroll:true})});
+
+// ===== Eingabe: Maus / Trackpad / Touch =====
+function eventPoint(e){const r=canvas.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]}
+const overHand=p=>handScreen&&Math.hypot(p[0]-handScreen[0],p[1]-handScreen[1])<34;
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('pointerdown',e=>{const p=eventPoint(e);try{canvas.setPointerCapture(e.pointerId)}catch(_){}canvas.focus({preventScroll:true});pointers.set(e.pointerId,p);ensureAudio();
+ if(pointers.size===2){const a=[...pointers.values()];gesture={type:'two-finger',distance:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),center:V.mul(V.add(a[0],a[1]),.5),pan:e.shiftKey||cameraPan,camera:snapCamera()};return}
+ if(e.button===2){gesture={type:e.shiftKey?'pan':'orbit',point:p,camera:snapCamera()};return}
+ if(overHand(p)){if(handSource==='usb'){message('Das Bedienteil ist per USB verbunden und bewegt die Hand. Zum Ziehen mit der Maus zuerst trennen.');gesture=null;return}const origin=handPos(),normal=e.shiftKey?[0,0,1]:forward.slice(),hit=intersectPlane(ray(...p),origin,normal);if(hit){gesture={type:'hand',origin,normal,offset:V.sub(origin,hit)};handDragged=true;canvas.style.cursor='grabbing';return}}
+ gesture={type:'pan',point:p,camera:snapCamera()}});
+canvas.addEventListener('pointermove',e=>{const p=eventPoint(e);if(!pointers.has(e.pointerId)){canvas.style.cursor=overHand(p)?(handSource==='usb'?'not-allowed':'grab'):'default';return}pointers.set(e.pointerId,p);if(!gesture)return;
+ if(gesture.type==='two-finger'){if(pointers.size!==2)return;const a=[...pointers.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),center=V.mul(V.add(a[0],a[1]),.5),delta=V.sub(center,gesture.center);camera.distance=clamp(gesture.camera.distance*Math.pow(gesture.distance/Math.max(1,d),1.8),300,6000);
+  if(gesture.pan)camera.focus=V.add(gesture.camera.focus,V.add(V.mul(right,delta[0]*camera.distance/focal),V.mul(up,-delta[1]*camera.distance/focal)));else{camera.azimuth=gesture.camera.azimuth+delta[0]*.007;camera.elevation=clamp(gesture.camera.elevation-delta[1]*.006,-.2,1.56)}manualCamera();return}
+ if(gesture.type==='hand'){const hit=intersectPlane(ray(...p),gesture.origin,gesture.normal);if(hit)setHandFromPoint(V.add(hit,gesture.offset));return}
+ if(gesture.type==='orbit'){camera.azimuth=gesture.camera.azimuth-(p[0]-gesture.point[0])*.007;camera.elevation=clamp(gesture.camera.elevation+(p[1]-gesture.point[1])*.006,-.2,1.56);manualCamera();return}
+ if(gesture.type==='pan'){camera.focus=V.add(gesture.camera.focus,V.add(V.mul(right,-(p[0]-gesture.point[0])*camera.distance/focal),V.mul(up,(p[1]-gesture.point[1])*camera.distance/focal)));if(Math.hypot(p[0]-gesture.point[0],p[1]-gesture.point[1])>3)manualCamera()}});
+function endPointer(e){pointers.delete(e.pointerId);gesture=null;canvas.style.cursor='default'}
+canvas.addEventListener('pointerup',endPointer);canvas.addEventListener('pointercancel',endPointer);canvas.addEventListener('lostpointercapture',endPointer);
+// Trackpad: zwei Finger = Wheel-Ereignisse (drehen), Pinch = Strg + Wheel (Zoom). Klassisches Mausrad zoomt.
+canvas.addEventListener('wheel',e=>{e.preventDefault();const mouseWheel=e.deltaMode===1||(e.deltaX===0&&Math.abs(e.deltaY)>=50&&Number.isInteger(e.deltaY));
+ if(e.ctrlKey||e.altKey||mouseWheel){camera.distance=clamp(camera.distance*Math.exp((e.deltaMode===1?e.deltaY*33:e.deltaY)*(mouseWheel&&!e.ctrlKey?.0012:.005)),300,6000)}
+ else if(e.shiftKey||cameraPan)camera.focus=V.add(camera.focus,V.add(V.mul(right,e.deltaX*camera.distance/focal),V.mul(up,-e.deltaY*camera.distance/focal)));
+ else{camera.azimuth+=e.deltaX*.006;camera.elevation=clamp(camera.elevation-e.deltaY*.006,-.2,1.56)}manualCamera()},{passive:false});
+
+// ===== Eingabe: Tastatur =====
+function shortcutField(t){return t.isContentEditable||!!t.closest?.('input,textarea,select,[contenteditable]')}
+function stopInput(){held.clear();shiftHeld=false;squeezeKey=false;squeezeBtn=false;gesture=null;pointers.clear();goal=null;desired=null}
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'){e.preventDefault();if(!e.repeat)pause();return}
+ if(shortcutField(e.target)||e.ctrlKey||e.metaKey||e.altKey)return;
+ if(e.key==='Shift'){shiftHeld=true;return}
+ const k=e.key.length===1?e.key.toLowerCase():e.key;
+ if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','q','e'].includes(k)){e.preventDefault();held.add(k);shiftHeld=e.shiftKey;ensureAudio();if(!e.repeat)updateSimInput(25);return}// kurzes Antippen bewegt ein kleines Stück
+ if(e.code==='Space'){e.preventDefault();squeezeKey=true;ensureAudio()}});
+document.addEventListener('keyup',e=>{if(e.key==='Shift'){shiftHeld=false;return}const k=e.key.length===1?e.key.toLowerCase():e.key;if(held.delete(k))e.preventDefault();if(e.code==='Space'&&!shortcutField(e.target)){e.preventDefault();squeezeKey=false}});
+document.addEventListener('focusin',e=>{if(shortcutField(e.target)){held.clear();squeezeKey=false}});
+window.addEventListener('blur',stopInput);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopInput()});
+// Taste für Touch / Maus: halten = Finger zusammendrücken
+{const b=$('squeeze');b.addEventListener('pointerdown',e=>{e.preventDefault();ensureAudio();try{b.setPointerCapture(e.pointerId)}catch(_){}squeezeBtn=true});const off=()=>{squeezeBtn=false};['pointerup','pointercancel','lostpointercapture'].forEach(t=>b.addEventListener(t,off));b.addEventListener('contextmenu',e=>e.preventDefault())}
+
+// ===== Bedienelemente =====
+function pause(){paused=!paused;stopInput();$('pause').textContent=paused?'Fortsetzen':'Pausieren';if(connected&&positionSynced&&actual)pose=actual.slice();message(paused?'Pausiert: Der Roboter folgt der Hand nicht. Bereits gestartete Servobewegungen laufen weiter.':'Steuerung freigegeben. Der Greifer folgt wieder der Hand.')}
+$('pause').onclick=pause;$('calibrate').onclick=()=>calibrate(true);$('home').onclick=homeAll;
+$('scale').oninput=()=>{scale=Number($('scale').value);$('scale-val').textContent=scale.toFixed(2).replace('.',',')+' ×';$('scale-note').textContent='10 cm Handweg = '+(10*scale).toFixed(1).replace('.',',').replace(',0','')+' cm Greiferweg. Wie groß die Bewegungen sind, legt die Software fest: Die Stange kann kleiner oder größer sein als der Arbeitsbereich, solange die Richtung stimmt.'};
+$('direction').onchange=()=>{mirror=$('direction').value==='mirror';message(mirror?'Gespiegelt: Zieht die Hand zu sich, fährt der Greifer weg; nach links wird nach rechts. Zum Vergleich, wie es sich falsch anfühlt.':'Gleichgerichtet: Der Greifer fährt in dieselbe Richtung wie die Hand – wie bei einem Gegenüber.')};
+$('speed').oninput=()=>{speedScale=Number($('speed').value)/100;$('speed-val').textContent=$('speed').value+' %'};
+$('toggle-props').onclick=()=>{releaseObject();propsVisible=!propsVisible;previousGrip=pose[5];$('toggle-props').textContent=propsVisible?'Blöcke: ein':'Blöcke: aus';$('toggle-props').setAttribute('aria-pressed',String(propsVisible))};
+$('reset-blocks').onclick=()=>{resetObjects();message('Blöcke zurückgesetzt.')};
+$('toggle-sound').onclick=()=>{soundOn=!soundOn;$('toggle-sound').textContent=soundOn?'Ton: ein':'Ton: aus';$('toggle-sound').setAttribute('aria-pressed',String(soundOn));if(soundOn)ensureAudio()};
+const legend=$('key-legend');function setLegend(show){legend.hidden=!show;$('legend-toggle').setAttribute('aria-pressed',String(show));$('stage').style.setProperty('--legend-h',(show?legend.offsetHeight:0)+'px')}
+new ResizeObserver(()=>$('stage').style.setProperty('--legend-h',(legend.hidden?0:legend.offsetHeight)+'px')).observe(legend);
+$('legend-close').onclick=()=>{setLegend(false);canvas.focus({preventScroll:true})};$('legend-toggle').onclick=()=>{setLegend(legend.hidden);canvas.focus({preventScroll:true})};
+
+// ===== USB: Roboter (Protokoll wie in der 3D-Steuerung) =====
+function updateConnectionText(){$('connection').textContent=(connected?(positionSynced?'Roboter verbunden':'Roboter verbunden · Position übernehmen'):'Roboter: Simulation')+' · '+(handConnected?'Bedienteil per USB':'Bedienteil: Maus und Tastatur')}
+function updateSyncUI(){const waiting=syncRequested||syncReading,s=$('sync-position');s.hidden=!connected;s.disabled=!connected||waiting;s.textContent=waiting?'Position wird übernommen …':positionSynced?'Roboterposition erneut übernehmen':'An Roboterposition anpassen';s.classList.toggle('sync-required',connected&&!positionSynced);updateConnectionText()}
+async function write(command,{sync=false}={}){if(!writer||pending)return;if(command!=='?'&&(!connected||!ready||!positionSynced)){message('Bewegung gesperrt. Zuerst die Roboterposition übernehmen.');return}pending={command,time:Date.now(),sync};log('> '+command);try{await writer.write(new TextEncoder().encode(command+'\n'))}catch(e){message('USB-Schreibfehler: '+e.message);void disconnect()}}
+function requestSyncRead(){if(!connected||!syncRequested||pending)return;syncRequested=false;syncReading=true;updateSyncUI();void write('?',{sync:true})}
+$('sync-position').onclick=()=>{if(!connected||syncRequested||syncReading)return;stopInput();heldObject=null;boxCapture=null;positionSynced=false;syncRequested=true;updateSyncUI();message('Roboterposition wird gelesen. Bis zur Antwort bleibt die Bewegung gesperrt.');requestSyncRead()};
+function handleLine(line){if(!line)return;log(line);const m=/^POS\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$/.exec(line);
+ if(m){const values=m.slice(1).map(Number);if(values.some(v=>v>4095))return;const syncResponse=pending?.sync===true;ready=true;actual=values;pending=null;
+  if(syncResponse&&syncReading){stopInput();pose=values.slice();previousGrip=pose[5];positionSynced=true;syncReading=false;calibrate(false);message('Roboterposition übernommen und Nullpunkt gesetzt: Die Hand steuert ab jetzt von hier aus.')}
+  else if(positionSynced){if(!goal&&!desired)pose=values.slice();if(desired&&values.every((v,i)=>Math.abs(v-desired[i])<=2)){desired=null;pose=values.slice()}}
+  updateSyncUI();requestSyncRead()}
+ else if(/Force-Überlast|Überlast|Temp|°C/i.test(line)){buzz(1,450);message('Roboter-Warnung: '+line+(/Temp|°C/i.test(line)?' · Ein abgeschaltetes Gelenk hält keine Last, der Arm kann absacken.':' · Gelenk drückt gegen ein Hindernis.'))}
+ else if(line.startsWith('ERR')){pending=null;positionSynced=false;syncRequested=false;syncReading=false;stopInput();updateSyncUI();message('Roboter meldet: '+line+'. Position erneut übernehmen.')}}
+async function readLoop(r,token){let buffer='';const decoder=new TextDecoder();try{while(token===serialSession){const {value,done}=await r.read();if(done||token!==serialSession||!connected)break;buffer+=decoder.decode(value,{stream:true});const lines=buffer.split('\n');buffer=lines.pop();lines.forEach(l=>handleLine(l.trim()));if(buffer.length>8192)buffer=''}}catch(e){log(e.message)}finally{if(connected&&token===serialSession)void disconnect()}}
+async function disconnect(){serialSession++;connected=false;ready=false;positionSynced=false;syncRequested=false;syncReading=false;pending=null;stopInput();const r=reader;reader=null;try{if(r){await r.cancel();r.releaseLock()}if(writer){writer.releaseLock();writer=null}if(port){await port.close();port=null}}catch(e){log(e.message)}writer=null;port=null;$('connect').textContent='Roboter verbinden ↗';updateSyncUI();message('Roboter getrennt. Simulation aktiv.')}
+$('connect').onclick=async()=>{if(connected){await disconnect();return}if(connecting)return;if(!navigator.serial){message('USB-Steuerung benötigt Chrome oder Edge. Die Simulation läuft auch ohne Web Serial.');return}connecting=true;$('connect').disabled=true;
+ try{port=await navigator.serial.requestPort();await port.open({baudRate:115200});writer=port.writable.getWriter();reader=port.readable.getReader();connected=true;ready=false;positionSynced=false;syncRequested=false;syncReading=false;syncTries=0;actual=null;stopInput();heldObject=null;boxCapture=null;updateSyncUI();$('connect').textContent='Roboter trennen';void readLoop(reader,++serialSession);message('Roboter verbunden. Board startet neu … Die Roboterposition wird danach automatisch übernommen.');await new Promise(r=>setTimeout(r,2000));if(connected&&port&&!positionSynced){syncRequested=true;updateSyncUI();message('Roboterposition wird automatisch gelesen. Bewegung bleibt bis zur Antwort gesperrt.');requestSyncRead()}}
+ catch(e){if(e.name!=='NotFoundError')message('Verbindungsfehler: '+e.message);if(port)await disconnect()}finally{connecting=false;$('connect').disabled=false}};
+$('query').onclick=()=>{if(connected&&!pending){stopInput();void write('?')}else message(connected?'Positionsantwort wird noch erwartet.':'Zuerst den Roboter per USB verbinden.')};
+setInterval(()=>{if(!connected)return;if(pending){if(Date.now()-pending.time>2500){const retry=!positionSynced&&++syncTries<=5;pending=null;ready=false;positionSynced=false;syncRequested=retry;syncReading=false;stopInput();updateSyncUI();message(retry?'Keine Antwort vom Roboter. Startposition wird erneut abgefragt ('+syncTries+'/5) …':'Keine Positionsantwort. Bewegung gesperrt. Position erneut übernehmen.')}return}
+ if(syncRequested){requestSyncRead();return}if(!ready){void write('?');return}
+ if(desired&&positionSynced&&!paused&&actual){const dist=Math.max(...desired.map((v,i)=>Math.abs(v-actual[i])));if(dist<=2){desired=null;return}const step=V.mix(actual,desired,Math.min(1,120*speedScale/dist)).map(Math.round);if(!front(step,WALL)||!safePath(actual,step,WALL)){stopInput();pose=actual.slice();message('Montage- oder Bodengrenze erreicht.');return}void write('A '+step.join(' '));lastQuery=Date.now()}
+ else if(Date.now()-lastQuery>750){lastQuery=Date.now();void write('?')}},60);
+
+// ===== USB: Bedienteil (Stange mit Handschale) =====
+async function sendHand(cmd){if(!hWriter)return;try{await hWriter.write(new TextEncoder().encode(cmd+'\n'))}catch(e){log('Bedienteil: '+e.message)}}
+function handleHandLine(line){if(!line)return;const num='(-?\\d+(?:\\.\\d+)?)',m=new RegExp('^H\\s+'+num+'\\s+'+num+'\\s+'+num+'\\s+'+num+'(?:\\s+'+num+')?\\s*$').exec(line);if(!m)return;const v=m.slice(1).map(x=>x===undefined?NaN:Number(x));if(v.slice(0,4).some(x=>!Number.isFinite(x)))return;
+ hand.yaw=clamp(v[0],...ROD.yaw);hand.pitch=clamp(v[1],...ROD.pitch);hand.slide=clamp(v[2],...ROD.slide);hand.finger=clamp(v[3]/FINGER_MM,0,1);if(Number.isFinite(v[4]))hand.ring=clamp(v[4],-90,90);handLastData=performance.now();
+ if(handFirst){handFirst=false;calibrate(false);message('Bedienteil liefert Werte. Nullpunkt gesetzt: Der Greifer bleibt stehen und folgt ab jetzt der echten Stange.')}}
+async function handReadLoop(r,token){let buffer='';const dec=new TextDecoder();try{while(token===handSession){const {value,done}=await r.read();if(done||token!==handSession)break;buffer+=dec.decode(value,{stream:true});const lines=buffer.split('\n');buffer=lines.pop();lines.forEach(l=>handleHandLine(l.trim()));if(buffer.length>4096)buffer=''}}catch(e){log('Bedienteil: '+e.message)}finally{if(handConnected&&token===handSession)void disconnectHand()}}
+async function disconnectHand(){handSession++;handConnected=false;handSource='sim';const r=hReader;hReader=null;try{if(hWriter){try{await hWriter.write(new TextEncoder().encode('V 0\n'))}catch(_){}}if(r){await r.cancel();r.releaseLock()}if(hWriter){hWriter.releaseLock();hWriter=null}if(hPort){await hPort.close();hPort=null}}catch(e){log('Bedienteil: '+e.message)}hWriter=null;hPort=null;lastVibSent=-1;$('connect-hand').textContent='Bedienteil verbinden ↗';updateConnectionText();message('Bedienteil getrennt. Maus und Tastatur steuern wieder die Hand.')}
+$('connect-hand').onclick=async()=>{if(handConnected){await disconnectHand();return}if(handConnecting)return;if(!navigator.serial){message('Das Bedienteil per USB braucht Chrome oder Edge (Web Serial). Die Simulation läuft auch ohne.');return}handConnecting=true;$('connect-hand').disabled=true;
+ try{hPort=await navigator.serial.requestPort();await hPort.open({baudRate:115200});hWriter=hPort.writable.getWriter();hReader=hPort.readable.getReader();handConnected=true;handSource='usb';handFirst=true;handLastData=performance.now();stopInput();$('connect-hand').textContent='Bedienteil trennen';updateConnectionText();void handReadLoop(hReader,++handSession);message('Bedienteil verbunden. Sobald Werte ankommen, wird der Nullpunkt gesetzt.')}
+ catch(e){if(e.name!=='NotFoundError')message('Bedienteil: '+e.message);if(hPort)await disconnectHand()}finally{handConnecting=false;$('connect-hand').disabled=false}};
+if(navigator.serial)navigator.serial.addEventListener('disconnect',e=>{if(connected&&e.target===port)void disconnect();if(handConnected&&e.target===hPort)void disconnectHand()});
+
+// ===== Einführung =====
+function explainer(id,buttonId,onClose){const el=$(id);let open=false;
+ const keys=e=>{if(e.key==='Escape'||e.key==='Enter'){e.preventDefault();e.stopPropagation();close()}else if(e.key!=='Tab'){e.stopPropagation()}};
+ const close=()=>{if(!open)return;open=false;el.classList.add('hide');window.removeEventListener('keydown',keys,true);setTimeout(()=>{if(!open)el.hidden=true;canvas.focus({preventScroll:true});onClose?.()},260)};
+ $(buttonId).onclick=close;el.addEventListener('pointerdown',e=>{if(e.target===el)close()});
+ return ()=>{if(open)return;open=true;el.hidden=false;void el.offsetWidth;el.classList.remove('hide');window.addEventListener('keydown',keys,true);$(buttonId).focus()}}
+const showIntro=explainer('intro','intro-start');$('help').onclick=showIntro;
+
+// ===== Start =====
+function frame(time){requestAnimationFrame(frame);syncRobotTheme();const dt=Math.min(32,Math.max(1,time-(lastFrame||time-16)));lastFrame=time;
+ stepCamera(time);updateSimInput(dt);followHand();stepGoal(dt);driveTool(dt);updateObjects(dt);stepVibration(dt,time);stepVisitor(dt);
+ draw();renderMonitor();drawHandPanel();refreshPanel()}
+{const o=gripOpenForGap(STANDARD_GAP,START);START[5]=o;pose[5]=o;previousGrip=o;GRIP_OPEN=o;G_HOME=gripFrame(START).anchor;calib.G0=G_HOME.slice();const W=wristPoint();VIS.x=W[0]+330;VIS.y=W[1]-150}
+updateSyncUI();setLegend(!matchMedia('(max-width:780px)').matches);showIntro();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
