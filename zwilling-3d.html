@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot Studio · Kleiner Zwilling</title>
+<script>if(!/[?&]from=home\b/.test(location.search))location.replace('index.html');</script>
+<script>(()=>{let t=null;try{t=localStorage.getItem("robot-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t})()</script>
+<style>
+  :root{--bg:#f2f2f2;--panel:#fbfbfbe6;--head:#fafafa;--field:#fff;--line:#dbdbdb;--ink:#222;--muted:#6b6b6b;--orange:#ed7e2a;--seg:#ececec}
+  [data-theme=dark]{--bg:#121212;--panel:#181818e6;--head:#161616;--field:#1c1c1c;--line:#2a2a2a;--ink:#f2f2f2;--muted:#a3a3a3;--seg:#101010}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font:13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;flex-direction:column}
+  button,a.btn{font:inherit;cursor:pointer;background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:8px 12px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+  button:hover,a.btn:hover{border-color:#bdbdbd}
+  button:focus-visible,a:focus-visible{outline:3px solid #ed7e2a88;outline-offset:2px}
+  header{height:76px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 30px;border-bottom:1px solid var(--line);background:var(--head);gap:14px}
+  .brand{display:flex;align-items:center;gap:13px}
+  .logo{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;font-size:24px;color:var(--orange);text-decoration:none}
+  h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.5px}
+  .sub{color:var(--muted);font-size:10px;letter-spacing:1.1px;margin-top:4px;text-transform:uppercase}
+  .actions{display:flex;gap:8px}
+  #stage{flex:1;position:relative;min-height:0;overflow:hidden;touch-action:none}
+  #stage canvas{display:block;width:100%;height:100%}
+  .title{position:absolute;left:26px;top:22px;pointer-events:none}
+  .tag{font:10px ui-monospace,monospace;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase}
+  .title h2{margin:8px 0 0;font-size:24px;font-weight:400;letter-spacing:-.8px}
+  .controls{position:absolute;right:22px;top:20px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .seg{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px 4px 4px 12px;backdrop-filter:blur(8px)}
+  .seg span{font:10px ui-monospace,monospace;letter-spacing:1px;text-transform:uppercase;color:var(--muted);min-width:62px}
+  .seg button{border:0;background:transparent;padding:6px 11px;border-radius:7px;color:var(--muted)}
+  .seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+  .card{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(8px)}
+  #status{left:22px;bottom:20px;width:min(420px,calc(100% - 44px));padding:16px 18px}
+  .state{display:flex;align-items:center;gap:11px;font-size:15px;font-weight:600;letter-spacing:-.2px}
+  .lamp{width:14px;height:14px;border-radius:50%;background:#f3f1ea;box-shadow:0 0 0 3px #00000010,0 0 14px #f3f1ea;border:1px solid #cfcfcf;flex:none;transition:background .2s,box-shadow .2s}
+  #stateSub{color:var(--muted);margin:6px 0 0 25px;line-height:1.5;min-height:19px}
+  #warn{color:#b2591d;margin:4px 0 0 25px;min-height:0;font-size:12px}
+  .keys{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted)}
+  kbd{font:10.5px ui-monospace,monospace;color:var(--ink);background:var(--field);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;white-space:nowrap}
+  .row{display:flex;gap:8px;margin-top:14px}
+  .row button{flex:1;justify-content:center}
+  #lockBtn[aria-pressed=true]{background:#ff8a1f;border-color:#ff8a1f;color:#fff}
+  #nums{right:22px;bottom:20px;padding:14px 16px;width:300px}
+  #nums h3{margin:0 0 10px;font:10px ui-monospace,monospace;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;font-weight:400;display:flex;justify-content:space-between}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+  .grid:last-child{margin-bottom:0}
+  .v{background:var(--field);border:1px solid var(--line);border-radius:7px;padding:7px 8px}
+  .v small{display:block;font-size:9.5px;color:var(--muted);margin-bottom:3px}
+  .v b{font:500 13px ui-monospace,monospace}
+  @media(max-width:980px){#nums{display:none}}
+  @media(max-width:700px){header{padding:0 16px;height:66px}.sub{display:none}.title{left:16px;top:14px}.title h2{font-size:19px}.controls{right:12px;top:70px}.seg span{display:none}#status{left:12px;bottom:12px;width:calc(100% - 24px);padding:12px 14px}.keys{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><a class="logo" href="index.html" aria-label="Zur Übersicht">⌁</a><div><h1>Robot Studio</h1><div class="sub">Kleiner Zwilling · 3D</div></div></div>
+  <div class="actions">
+    <a class="btn" href="zwilling-board.html?from=home">Ansichten ↗</a>
+    <button id="theme" type="button">◐</button>
+    <a class="btn" href="index.html">← Übersicht</a>
+  </div>
+</header>
+<div id="stage">
+  <div class="title"><div class="tag">05 · Konzept · Spiegel · Maßstab 1 : 2</div><h2>Kleiner Zwilling → Roboterarm</h2></div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Form des Zwillings"><span>Form</span><button data-form="saeule" aria-pressed="true">Säule</button><button data-form="lampe" aria-pressed="false">Lampe</button></div>
+    <div class="seg" role="group" aria-label="Ansicht"><span>Ansicht</span><button data-view="player" aria-pressed="true">Spieler</button><button data-view="side" aria-pressed="false">Seite</button><button data-view="top" aria-pressed="false">Oben</button></div>
+  </div>
+  <div class="card" id="status" aria-live="polite">
+    <div class="state"><span class="lamp" id="lamp"></span><span id="stateText">Frei</span></div>
+    <div id="stateSub"></div>
+    <div id="warn"></div>
+    <div class="keys">
+      <span>Griff ziehen</span><span>drehen &amp; ausfahren</span>
+      <span>Spiegel</span><span>rechts bleibt rechts · zu dir = weg von dir</span>
+      <span><kbd>Shift</kbd> + ziehen</span><span>hoch / runter</span>
+      <span><kbd>S</kbd> / Daumentaste</span><span>Arm sperren</span>
+      <span>gesperrt ziehen</span><span>Griff drehen = Greifer drehen</span>
+      <span><kbd>Leertaste</kbd> halten</span><span>Griff drücken = Greifer schließt</span>
+      <span><kbd>2×</kbd>, 2. Mal halten</span><span>Greifer öffnet</span>
+    </div>
+    <div class="row"><button id="lockBtn" aria-pressed="false">Sperren · S</button><button id="resetBlocks">Klötzchen zurück</button></div>
+  </div>
+  <div class="card" id="nums">
+    <h3>Zwilling <span>1 : 2</span></h3>
+    <div class="grid"><div class="v"><small>Drehung</small><b id="nPhi">0°</b></div><div class="v"><small>Auszug</small><b id="nE">0</b></div><div class="v"><small>Höhe</small><b id="nH">0</b></div></div>
+    <h3>Roboterarm <span>Achsen</span></h3>
+    <div class="grid"><div class="v"><small>1 Basis</small><b id="a1"></b></div><div class="v"><small>2 Schulter</small><b id="a2"></b></div><div class="v"><small>3 Ellbogen</small><b id="a3"></b></div>
+    <div class="v"><small>4 Handgelenk</small><b id="a4"></b></div><div class="v"><small>5 Drehen</small><b id="a5"></b></div><div class="v"><small>6 Greifer</small><b id="a6"></b></div></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="zwilling-modell.js"></script>
+<script>
+(function(){
+  const $=id=>document.getElementById(id), D=Math.PI/180;
+  const stage=$('stage');
+  const renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(2,devicePixelRatio));
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.outputEncoding=THREE.sRGBEncoding; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+  stage.prepend(renderer.domElement);
+  const W=Zwilling.create(), S=W.S;
+  const cam=new THREE.PerspectiveCamera(34,1,5,9000);
+  const controls=new THREE.OrbitControls(cam,renderer.domElement);
+  controls.enableDamping=true; controls.dampingFactor=.09; controls.maxPolarAngle=Math.PI*.49; controls.minDistance=180; controls.maxDistance=2600;
+  const VIEWS={player:{p:[-60,880,1520],t:[-40,40,170]},side:{p:[1500,420,170],t:[-40,80,170]},top:{p:[-20,2000,140],t:[-20,0,139]}};
+  let fly=null;
+  function view(name,instant){const v=VIEWS[name];document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===name));
+    if(instant){cam.position.set(...v.p);controls.target.set(...v.t);controls.update();return}
+    fly={t:0,p0:cam.position.clone(),t0:controls.target.clone(),p1:new THREE.Vector3(...v.p),t1:new THREE.Vector3(...v.t)}}
+  view('player',true);
+  function resize(){const r=stage.getBoundingClientRect();renderer.setSize(r.width,r.height,false);cam.aspect=r.width/r.height;cam.updateProjectionMatrix()}
+  addEventListener('resize',resize);resize();
+
+  // Theme
+  function applyTheme(){W.setTheme(document.documentElement.dataset.theme==='dark')}
+  applyTheme();
+  $('theme').onclick=()=>{const r=document.documentElement,t=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=t;try{localStorage.setItem('robot-theme',t)}catch(e){}applyTheme()};
+
+  // Schalter
+  document.querySelectorAll('[data-form]').forEach(b=>b.onclick=()=>{W.setForm(b.dataset.form);document.querySelectorAll('[data-form]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.form===S.form))});
+  document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>view(b.dataset.view));
+  const toggleLock=()=>{if(S.held&&!S.lock){/* mit Klotz sperren ist erlaubt: zum genauen Absetzen */}W.setLock(!S.lock)};
+  $('lockBtn').onclick=toggleLock;
+  $('resetBlocks').onclick=()=>W.resetBlocks();
+
+  // Griff ziehen
+  const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+  function setNdc(e){const r=renderer.domElement.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,cam)}
+  const grabTargets=()=>{const a=[];W.twin.end.traverse(o=>{if(o.isMesh)a.push(o)});return a};
+  let drag=null;
+  function handleBottom(){return new THREE.Vector3(W.LAY.twin.x+S.e*Math.sin(S.phi*D),W.C.PED_H+S.h,W.LAY.twin.z+S.e*Math.cos(S.phi*D))}
+  function planeHit(plane){const p=new THREE.Vector3();return ray.ray.intersectPlane(plane,p)?p:null}
+  function initMode(e){
+    const hb=handleBottom();
+    if(S.lock){drag.mode='twist';drag.x=e.clientX;drag.tw=S.twist;return}
+    if(e.shiftKey){const n=new THREE.Vector3();cam.getWorldDirection(n);n.y=0;n.normalize();drag.plane=new THREE.Plane().setFromNormalAndCoplanarPoint(n,drag.point);drag.mode='v'}
+    else{drag.plane=new THREE.Plane(new THREE.Vector3(0,1,0),-drag.point.y);drag.mode='h'}
+    const hit=planeHit(drag.plane)||drag.point.clone();drag.off=hb.clone().sub(hit);
+  }
+  stage.addEventListener('pointerdown',e=>{
+    if(e.button!==0||e.target!==renderer.domElement)return;
+    setNdc(e);const hits=ray.intersectObjects(grabTargets(),false);if(!hits.length)return;
+    e.stopPropagation();controls.enabled=false;
+    if(hits[0].object===W.twin.button){toggleLock();controls.enabled=true;return}
+    drag={id:e.pointerId,point:hits[0].point.clone()};initMode(e);
+    renderer.domElement.setPointerCapture(e.pointerId);stage.style.cursor='grabbing';
+  },true);
+  addEventListener('pointermove',e=>{
+    if(!drag){setNdc(e);stage.style.cursor=ray.intersectObjects(grabTargets(),false).length?'grab':'';return}
+    const want=S.lock?'twist':(e.shiftKey?'v':'h');if(want!==drag.mode){drag.point=handleBottom();initMode(e)}
+    setNdc(e);
+    if(drag.mode==='twist'){S.twist=Math.max(-160,Math.min(160,drag.tw+(e.clientX-drag.x)*.6));return}
+    const hit=planeHit(drag.plane);if(!hit)return;const p=hit.add(drag.off);
+    if(drag.mode==='h'){const dx=p.x-W.LAY.twin.x,dz=p.z-W.LAY.twin.z;W.moveTwinToward(Math.atan2(dx,dz)/D,Math.hypot(dx,dz),S.h)}
+    else W.moveTwinToward(S.phi,S.e,p.y-W.C.PED_H);
+  });
+  addEventListener('pointerup',()=>{if(drag){drag=null;controls.enabled=true;stage.style.cursor=''}});
+  addEventListener('blur',()=>{S.gripCmd=null;if(drag){drag=null;controls.enabled=true}});
+
+  // Leertaste: halten = schließen · 2×, beim 2. Mal halten = öffnen
+  let spaceDown=0,lastTapEnd=-1e9,closeTimer=null;
+  addEventListener('keydown',e=>{
+    if(e.code==='Space'){e.preventDefault();if(e.repeat)return;const now=performance.now();spaceDown=now;
+      if(now-lastTapEnd<380){S.gripCmd='open'}else{clearTimeout(closeTimer);closeTimer=setTimeout(()=>{if(spaceDown)S.gripCmd='close'},130)}}
+    else if(e.code==='KeyS'&&!e.repeat){toggleLock()}
+  });
+  addEventListener('keyup',e=>{
+    if(e.code!=='Space')return;const now=performance.now();
+    lastTapEnd=(now-spaceDown<260&&S.gripCmd!=='open')?now:-1e9;
+    spaceDown=0;clearTimeout(closeTimer);S.gripCmd=null;
+  });
+
+  // Anzeige
+  const STATE={free:['Frei','Griff ziehen und den Greifer über einen Klotz bringen.'],lock:['Gesperrt','Nur noch der Greifer: Griff drehen und mit der Leertaste greifen.'],held:['Klotz gegriffen','Arm ist wieder frei · zur Stapelzone tragen und mit 2× Leertaste absetzen.']};
+  const f0=v=>Math.round(v)+'°', mm=v=>Math.round(v)+' mm';
+  let tick=0;
+  function hud(){
+    const st=S.held?'held':(S.lock?'lock':'free'),col='#'+W.lightColor().toString(16).padStart(6,'0');
+    $('stateText').textContent=STATE[st][0];$('stateSub').textContent=STATE[st][1];
+    $('lamp').style.background=col;$('lamp').style.boxShadow='0 0 0 3px #00000010,0 0 16px '+col;
+    $('warn').textContent=S.hint||(S.limit?'Der Roboter kommt hier nicht weiter · er bleibt am nächsten erreichbaren Punkt.':'');
+    $('lockBtn').setAttribute('aria-pressed',S.lock);$('lockBtn').textContent=S.lock?'Entsperren · S':'Sperren · S';
+    const a=W.axes();
+    $('nPhi').textContent=f0(S.phi);$('nE').textContent=mm(S.e);$('nH').textContent=mm(S.h);
+    $('a1').textContent=f0(a.a1);$('a2').textContent=f0(a.a2);$('a3').textContent=f0(a.a3);$('a4').textContent=f0(a.a4);$('a5').textContent=f0(a.a5);$('a6').textContent=mm(a.gap);
+  }
+  let last=performance.now();
+  function loop(now){
+    const dt=(now-last)/1000;last=now;
+    if(fly){fly.t=Math.min(1,fly.t+dt*1.6);const k=fly.t<.5?2*fly.t*fly.t:1-Math.pow(-2*fly.t+2,2)/2;cam.position.lerpVectors(fly.p0,fly.p1,k);controls.target.lerpVectors(fly.t0,fly.t1,k);if(fly.t>=1)fly=null}
+    controls.update();W.update(dt);renderer.render(W.scene,cam);
+    if((tick++&3)===0)hud();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  window.__W=W;
+})();
+</script>
+</body>
+</html>

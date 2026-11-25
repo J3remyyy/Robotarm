@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot Studio · Zwilling Ansichten</title>
+<script>if(!/[?&]from=home\b/.test(location.search))location.replace('index.html');</script>
+<style>
+  :root{--bg:#f5f4f0;--ink:#1d1d1d;--muted:#7a7a76;--line:#e2e0da;--orange:#ed7e2a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+  header{height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:13px}
+  .logo{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;font-size:24px;color:var(--orange);text-decoration:none}
+  h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.5px}
+  .sub{color:var(--muted);font-size:10px;letter-spacing:1.1px;margin-top:4px;text-transform:uppercase}
+  .actions{display:flex;gap:8px}
+  a.btn,button{font:inherit;font-size:12px;cursor:pointer;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:7px;padding:8px 12px;text-decoration:none}
+  a.btn:hover,button:hover{border-color:#c4c2bb}
+  main{max-width:1280px;margin:0 auto;padding:48px 30px 64px}
+  .tag{font:10px ui-monospace,monospace;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase}
+  h2{font-size:34px;font-weight:400;letter-spacing:-1.2px;margin:10px 0 10px}
+  .lead{color:var(--muted);max-width:620px;line-height:1.6;margin:0 0 36px}
+  .boards{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  figure{margin:0;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;position:relative}
+  figure.wide{grid-column:1/-1}
+  figure canvas{display:block;width:100%;height:auto}
+  figure button{position:absolute;right:14px;top:14px;opacity:0;transition:opacity .15s}
+  figure:hover button,figure button:focus-visible{opacity:1}
+  #status{color:var(--muted);font-size:12px;margin-bottom:16px}
+  @media(max-width:820px){.boards{grid-template-columns:1fr}main{padding:32px 16px}header{padding:0 16px}h2{font-size:26px}figure button{opacity:1}}
+  body.export header,body.export main>:not(.boards){display:none}
+  body.export main{padding:0;max-width:none}
+  body.export .boards{display:block}
+  body.export figure{border:0;border-radius:0}
+  body.export figure:not(.show){display:none}
+  body.export figure button{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><a class="logo" href="index.html" aria-label="Zur Übersicht">⌁</a><div><h1>Robot Studio</h1><div class="sub">Kleiner Zwilling · Ansichten</div></div></div>
+  <div class="actions"><a class="btn" href="zwilling-3d.html?from=home">3D öffnen ↗</a><button id="all">Alle als PNG speichern</button><a class="btn" href="index.html">← Übersicht</a></div>
+</header>
+<main>
+  <div class="tag">Konzept · Kleiner Zwilling</div>
+  <h2>Ein Griff, ein Greifer</h2>
+  <p class="lead">Fünf Ansichten zum Zeigen. Jede lässt sich einzeln als Bild speichern (Mauszeiger auf das Bild, dann „PNG“).</p>
+  <div id="status">Ansichten werden gerendert …</div>
+  <div class="boards" id="boards"></div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="zwilling-modell.js"></script>
+<script>
+(function(){
+  const BG=0xf5f4f0, K=1.5, PW=1600, PH=900, D=Math.PI/180;
+  const exportIdx=(location.search.match(/[?&]export=(\d)/)||[])[1];
+  if(exportIdx)document.body.classList.add('export');
+  const FONT='"Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif';
+  const INK='#1d1d1d', MUTED='#7a7a76', ORANGE='#ed7e2a', LINE='#a9a69f';
+
+  const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+  const W=Zwilling.create({background:BG}), S=W.S, L=W.LAY, C=W.C;
+  W.grid.visible=false;W.dims.visible=false;
+  W.env.traverse(o=>{if(o.isSprite)o.visible=false});
+  // Hintergrundfarbe so übernehmen, wie der Renderer sie ausgibt
+  let BGCSS='#f5f4f0';
+  try{const sky=new THREE.PerspectiveCamera(20,1,1,100);sky.position.set(0,9000,0);sky.lookAt(0,20000,0);renderer.setSize(8,8,false);renderer.render(W.scene,sky);
+    const t=document.createElement('canvas');t.width=t.height=8;const tc=t.getContext('2d');tc.drawImage(renderer.domElement,0,0);const d=tc.getImageData(4,4,1,1).data;BGCSS='rgb('+d[0]+','+d[1]+','+d[2]+')'}catch(e){}
+
+  // ---------- Zeichenhilfen ----------
+  function persp(pos,tgt,fov){const c=new THREE.PerspectiveCamera(fov||30,1,5,9000);c.position.set(...pos);c.lookAt(...tgt);c.userData.t=tgt;return c}
+  function shot(ctx,r,cam,clipCircle){
+    if(cam.isPerspectiveCamera){cam.aspect=r.w/r.h;cam.updateProjectionMatrix()}
+    else{const hw=cam.userData.hw,hh=hw*r.h/r.w;cam.left=-hw;cam.right=hw;cam.top=hh;cam.bottom=-hh;cam.updateProjectionMatrix()}
+    renderer.setSize(Math.round(r.w*K),Math.round(r.h*K),false);renderer.render(W.scene,cam);
+    ctx.save();if(clipCircle){ctx.beginPath();ctx.arc(r.x+r.w/2,r.y+r.h/2,r.w/2,0,Math.PI*2);ctx.clip()}
+    ctx.drawImage(renderer.domElement,r.x,r.y,r.w,r.h);ctx.restore();
+    return v=>{const p=v.clone().project(cam);return [r.x+(p.x+1)/2*r.w,r.y+(1-p.y)/2*r.h]};
+  }
+  function text(ctx,s,x,y,o){o=o||{};ctx.font=(o.w||400)+' '+(o.s||18)+'px '+FONT;ctx.fillStyle=o.c||INK;ctx.textAlign=o.a||'left';ctx.textBaseline='alphabetic';
+    if(o.ls){ctx.save();ctx.letterSpacing=o.ls+'px'}ctx.fillText(s,x,y);if(o.ls)ctx.restore()}
+  function wrap(ctx,s,x,y,maxW,lh,o){o=o||{};ctx.font=(o.w||400)+' '+(o.s||18)+'px '+FONT;const words=s.split(' ');let line='',yy=y;
+    for(const w of words){const t=line?line+' '+w:w;if(ctx.measureText(t).width>maxW&&line){text(ctx,line,x,yy,o);line=w;yy+=lh}else line=t}if(line)text(ctx,line,x,yy,o);return yy}
+  function head(ctx,kicker,title,caption,x,y,maxW){
+    text(ctx,kicker.toUpperCase(),x,y,{s:13,c:MUTED,ls:2,w:500});
+    text(ctx,title,x,y+46,{s:38,w:400});
+    if(caption)wrap(ctx,caption,x,y+84,maxW||520,27,{s:18,c:MUTED});
+  }
+  function label(ctx,P,v,dx,dy,title,sub){
+    const [ax,ay]=P(v),tx=ax+dx,ty=ay+dy,left=dx<0;
+    ctx.strokeStyle=LINE;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(tx,ty);ctx.lineTo(tx+(left?-14:14),ty);ctx.stroke();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ax,ay,7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=ORANGE;ctx.beginPath();ctx.arc(ax,ay,4.2,0,Math.PI*2);ctx.fill();
+    const x=tx+(left?-22:22);
+    text(ctx,title,x,ty+6,{s:19,w:600,a:left?'right':'left'});
+    if(sub)text(ctx,sub,x,ty+30,{s:15.5,c:MUTED,a:left?'right':'left'});
+  }
+  function dot(ctx,x,y,col,r){ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,r||8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#00000022';ctx.lineWidth=1;ctx.stroke()}
+  function hexCss(h){return '#'+h.toString(16).padStart(6,'0')}
+  function legend(ctx,x,y){
+    text(ctx,'LICHTRING',x,y,{s:12,c:MUTED,ls:2,w:500});
+    [[W.LIGHT.free,'Weiß','Arm frei'],[W.LIGHT.lock,'Orange','Arm gesperrt'],[W.LIGHT.held,'Grün','Klotz gegriffen']].forEach((r,i)=>{
+      const yy=y+34+i*34;dot(ctx,x+9,yy-6,hexCss(r[0]),9);text(ctx,r[1],x+30,yy,{s:17,w:600});text(ctx,r[2],x+102,yy,{s:17,c:MUTED})});
+  }
+  function newCanvas(w,h){const c=document.createElement('canvas');c.width=w*K;c.height=h*K;const ctx=c.getContext('2d');ctx.scale(K,K);ctx.fillStyle=BGCSS;ctx.fillRect(0,0,w,h);return [c,ctx]}
+  const twinPos=new THREE.Vector3(L.twin.x,C.PED_H,L.twin.z);
+  const add=(v,x,y,z)=>v.clone().add(new THREE.Vector3(x,y,z));
+
+  // ---------- Szenen-Zustände ----------
+  function baseScene(){W.env.visible=true;W.pedestal.visible=true;W.twin.root.visible=true;W.resetBlocks()}
+  function poseTip(x,y,z,extra){const p=W.twinPoseForTip(x,y,z);W.pose(Object.assign({form:'saeule',phi:p.phi,e:p.e,h:p.h},extra||{}));return p}
+  function toolYawDeg(){return W.toolYawDeg()}
+
+  // ---------- 1 · Aufbau ----------
+  function board1(){
+    const [c,ctx]=newCanvas(PW,PH);baseScene();
+    W.placeBlock(4,2,15,-3,0.15);W.placeBlock(3,-4,45,2,-0.1);
+    poseTip(0,150+30,150);
+    const cam=persp([1650,1350,980],[-60,150,250],22);
+    const P=shot(ctx,{x:0,y:0,w:PW,h:PH},cam);const A=W.anchors();
+    head(ctx,'01 · Aufbau','Zwilling und Roboterarm','Der kleine Zwilling steht direkt vor dir, dahinter der echte Arm. Wie im Spiegel: rechts bleibt rechts, ziehst du den Griff zu dir, fährt der Greifer von dir weg.',64,80,470);
+    label(ctx,P,A.column,-170,30,'Kleiner Zwilling','Maßstab 1 : 2 · steht vor dir');
+    label(ctx,P,A.robotUpper,-160,-90,'Roboterarm','folgt dem Griff');
+    label(ctx,P,A.depot,-180,110,'Klötzchen','neben dem Arm auf der Plattform');
+    label(ctx,P,new THREE.Vector3(0,10,0),190,120,'Stapelzone','15 cm tiefer · beide Arme reichen hin');
+    label(ctx,P,A.oppBase,110,30,'Gegenüber','zweiter Roboter');
+    return c;
+  }
+  // ---------- 2 · Zwei Formen ----------
+  function board2(){
+    const [c,ctx]=newCanvas(PW,PH);baseScene();W.env.visible=false;
+    head(ctx,'02 · Zwei Formen','Säule oder Lampe','Beide Formen machen dasselbe: drehen, Höhe ändern, ausfahren. Unterschiedlich ist nur, wie sich das anfühlt.',64,80,620);
+    const forms=[['saeule','Säule mit Schiebearm','Jede Bewegung geht genau in eine Richtung.'],['lampe','Lampe mit Auszug','Kippen hebt und senkt, der Griff wandert dabei etwas mit.']];
+    forms.forEach((f,i)=>{
+      W.pose({form:f[0],phi:70,e:100,h:8});
+      const r={x:40+i*780,y:205,w:740,h:560};
+      const cam=persp([L.twin.x+130,330,L.twin.z+580],[L.twin.x+48,118,L.twin.z+10],27);
+      const P=shot(ctx,r,cam);const A=W.anchors();
+      const armMid=A.bearing.clone().lerp(f[0]==='saeule'?A.sleeve:A.joint,.45);
+      label(ctx,P,add(twinPos,0,6,0),-150,40,'Drehen','ganze Säule');
+      if(f[0]==='saeule')label(ctx,P,A.sleeve,-90,-100,'Hoch / runter','Hülse an der Säule');
+      else label(ctx,P,A.joint,-90,-100,'Kippen','Gelenk hebt den Arm');
+      label(ctx,P,armMid,50,-130,'Ausfahren','');
+      label(ctx,P,A.handleMid,110,60,'Griff','');
+      text(ctx,f[1],r.x+30,r.y+r.h+42,{s:22,w:600});
+      text(ctx,f[2],r.x+30,r.y+r.h+72,{s:17,c:MUTED});
+    });
+    ctx.strokeStyle='#e2e0da';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(800,250);ctx.lineTo(800,860);ctx.stroke();
+    return c;
+  }
+  // ---------- 3 · Der Griff ----------
+  function board3(){
+    const [c,ctx]=newCanvas(PW,PH);baseScene();W.env.visible=false;
+    W.pose({form:'saeule',phi:90,e:95,h:10,lock:true,twist:0,squeeze:0});
+    head(ctx,'03 · Der Griff','Alles an einer Hand','Der Griff dreht sich locker mit, damit das Handgelenk entspannt bleibt. Mehr als eine Taste braucht es nicht.',64,80,430);
+    legend(ctx,64,330);
+    text(ctx,'Ist der Klotz gegriffen, wird der Arm',64,520,{s:16,c:MUTED});text(ctx,'von selbst wieder frei.',64,544,{s:16,c:MUTED});
+    const hb=W.anchors().handleMid;
+    const cam=persp([hb.x+330,hb.y+150,hb.z+250],[hb.x-10,hb.y+16,hb.z],24);
+    const P=shot(ctx,{x:520,y:0,w:1080,h:PH},cam);const A=W.anchors();
+    label(ctx,P,A.thumb,70,-130,'Daumentaste','Arm sperren und entsperren');
+    label(ctx,P,A.lightRing,240,-30,'Lichtring','zeigt den Zustand');
+    label(ctx,P,A.bearing,220,60,'Lager','Griff dreht frei mit');
+    label(ctx,P,A.shell,210,140,'Zusammendrücken','Greifer schließt');
+    label(ctx,P,add(A.handleMid,-14,-10,4),-150,170,'Drehen','dreht den Greifer, nur wenn gesperrt');
+    return c;
+  }
+  // ---------- 4 · Ablauf ----------
+  function board4(){
+    const [c,ctx]=newCanvas(PW,PH);baseScene();
+    head(ctx,'04 · Ablauf','Greifen in vier Schritten','',64,80);
+    const steps=[
+      ['Hinfahren','Griff ziehen, bis der Greifer über dem Klotz steht.'],
+      ['Sperren','Daumentaste. Der Arm steht still, Drehen richtet den Greifer aus.'],
+      ['Greifen','Griff drücken. Sitzt der Klotz, ist der Arm wieder frei.'],
+      ['Stapeln','Über der Stapelzone zweimal drücken: Greifer öffnet.']];
+    const block=W.LAY.depotMine[0];
+    const p0=W.twinPoseForTip(block[0],150+30,block[1]);const skew=(-p0.phi+14);// Klotz steht 14° schräg zum Greifer
+    steps.forEach((s,i)=>{
+      W.resetBlocks();
+      W.placeBlock(0,block[0],165,block[1],skew*D);
+      if(i===0){poseTip(block[0],150+34,block[1],{rot:0})}
+      if(i===1){poseTip(block[0],151,block[1],{rot:14,lock:true,twist:-14})}
+      if(i===2){poseTip(block[0],150+36,block[1],{rot:14});W.holdBlock(0)}
+      if(i===3){W.placeBlock(4,0,15,0,0.2);poseTip(0,31,0,{rot:14});W.placeBlock(0,0,45,0,toolYawDeg()*D)}
+      W.update(0,true);
+      const x=40+i*385,r={x:x,y:170,w:365,h:500};
+      const g=new THREE.Vector3();W.robot.parts.palm.getWorldPosition(g);
+      const cam=persp([g.x+380,g.y+150,g.z+120],[g.x,g.y-70,g.z],30);
+      shot(ctx,r,cam);
+      // Griff als kleines Rundbild
+      const hb=W.anchors().handleMid;const hc=persp([hb.x+120,hb.y+110,hb.z+140],[hb.x,hb.y+30,hb.z],30);
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+300,r.y+66,58,0,Math.PI*2);ctx.fill();
+      shot(ctx,{x:x+246,y:r.y+12,w:108,h:108},hc,true);
+      ctx.strokeStyle='#e2e0da';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x+300,r.y+66,54,0,Math.PI*2);ctx.stroke();
+      const col=hexCss(W.lightColor());
+      text(ctx,'0'+(i+1),x+14,r.y+r.h+48,{s:14,c:MUTED,ls:2,w:500});
+      dot(ctx,x+62,r.y+r.h+43,col,7);
+      text(ctx,s[0],x+14,r.y+r.h+84,{s:24,w:600});
+      wrap(ctx,s[1],x+14,r.y+r.h+114,330,24,{s:16.5,c:MUTED});
+    });
+    return c;
+  }
+  // ---------- 5 · Von der Seite ----------
+  function board5(){
+    const [c,ctx]=newCanvas(PW,PH);baseScene();
+    W.placeBlock(4,0,15,0,0.2);W.placeBlock(3,0,45,0,0.1);
+    poseTip(0,90,0,{});W.holdBlock(0);
+    head(ctx,'05 · Von der Seite','Ein halb so großes Abbild','Der Sockel ist halb so hoch wie die Plattform. Der Zwilling zeigt zu dir, der Arm von dir weg: ein Spiegelbild, halb so groß.',64,80,520);
+    const cam=new THREE.OrthographicCamera(-1,1,1,-1,10,6000);cam.userData.hw=620;
+    cam.position.set(3000,185,170);cam.lookAt(0,185,170);
+    const r={x:0,y:250,w:PW,h:650};
+    const P=shot(ctx,r,cam);
+    function vdim(x0,y0,y1,z,lab,left){const a=P(new THREE.Vector3(0,y0,z)),b=P(new THREE.Vector3(0,y1,z));const x=a[0]+(left?-28:28);
+      ctx.strokeStyle='#8c8a84';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(x,a[1]);ctx.lineTo(x,b[1]);ctx.moveTo(x-7,a[1]);ctx.lineTo(x+7,a[1]);ctx.moveTo(x-7,b[1]);ctx.lineTo(x+7,b[1]);ctx.stroke();
+      text(ctx,lab,x+(left?-12:12),(a[1]+b[1])/2+6,{s:18,w:600,a:left?'right':'left'})}
+    vdim(0,0,150,L.platMine.z0,'15 cm',false);
+    vdim(0,0,75,L.ped.z1,'7,5 cm',true);
+    const A=W.anchors();
+    label(ctx,P,add(twinPos,0,120,0),-20,-150,'Zwilling 1 : 2','');
+    label(ctx,P,A.gripper,130,60,'Greifer','folgt dem Griff');
+    label(ctx,P,new THREE.Vector3(0,4,0),30,60,'Stapelzone','');
+    const pl=P(new THREE.Vector3(0,40,L.ped.z1+170));text(ctx,'du',pl[0],pl[1],{s:18,c:MUTED,a:'center'});
+    ctx.strokeStyle='#c9c6be';ctx.beginPath();ctx.moveTo(pl[0]+22,pl[1]-6);ctx.lineTo(pl[0]+60,pl[1]-6);ctx.stroke();
+    return c;
+  }
+
+  const boards=[['aufbau',board1,true],['zwei-formen',board2,false],['griff',board3,false],['ablauf',board4,true],['seitenansicht',board5,true]];
+  const holder=document.getElementById('boards'),made=[];
+  try{
+    boards.forEach((b,i)=>{
+      if(exportIdx&&+exportIdx!==i+1)return;
+      const canvas=b[1]();const fig=document.createElement('figure');if(b[2])fig.className='wide';
+      if(exportIdx)fig.classList.add('show');
+      const btn=document.createElement('button');btn.textContent='PNG';btn.onclick=()=>save(canvas,b[0],i);
+      fig.append(canvas,btn);holder.append(fig);made.push([canvas,b[0],i]);
+    });
+    document.getElementById('status').textContent='';
+    document.body.dataset.ready='1';
+  }catch(e){document.getElementById('status').textContent='Fehler beim Rendern: '+e.message;console.error(e)}
+  function save(canvas,name,i){const a=document.createElement('a');a.download='zwilling-'+(i+1)+'-'+name+'.png';a.href=canvas.toDataURL('image/png');a.click()}
+  document.getElementById('all').onclick=()=>made.forEach((m,k)=>setTimeout(()=>save(...m),k*350));
+})();
+</script>
+</body>
+</html>
