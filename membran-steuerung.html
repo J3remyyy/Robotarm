@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Membran-Steuerung · Robotarm</title>
+<script>(()=>{let t=null;try{t=localStorage.getItem("robot-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t})()</script>
+<style>
+:root{--bg:#fafaf8;--card:#f4f4f1;--ink:#191a19;--muted:#797c77;--line:#dedfd9;--fabric:#f3e2c4;--fabric-edge:#9a6a2f;--cord:#d85a30;--lock:#e24b4a;--ok:#3d8a5a;--blue:#526aff;--arm:#2b2b2b;--ghost:#b9bdb3;--wall:#775035;--block1:#5e8a6c;--block2:#56709e;--block3:#b07f4f}
+:root[data-theme="dark"]{--bg:#121212;--card:#1a1a1a;--ink:#f1f1ee;--muted:#a3a39e;--line:#2c2c2a;--fabric:#4a3a22;--fabric-edge:#d9a45c;--arm:#e6e6e2;--ghost:#55554f;--wall:#8a6447}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px Arial,Helvetica,sans-serif}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:transparent;border:1px solid var(--line);border-radius:7px;padding:9px 13px}
+button:hover{background:var(--card)}
+button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button.stop{border-color:var(--lock);color:var(--lock)}
+button.on{background:var(--ok);border-color:var(--ok);color:#fff}
+select{background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 9px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 3vw;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:20px}
+h1{font-size:18px;margin:0 0 3px;letter-spacing:-.4px}
+.eyebrow{font-size:10px;letter-spacing:1.6px;color:var(--muted);text-transform:uppercase}
+.conn{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.status{font-size:12px;color:var(--muted)}
+.status:before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:#aaa;margin-right:6px}
+.status.live:before{background:var(--ok)}
+main{max-width:1500px;margin:auto;padding:22px 3vw 40px;display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1.15fr);gap:24px}
+.card{background:var(--card);border:1px dashed var(--muted);border-radius:6px;padding:16px}
+.card h2{font-size:15px;font-weight:400;margin:0 0 4px}
+.card .sub{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+canvas{display:block;width:100%;touch-action:none;border-radius:4px}
+#membrane{aspect-ratio:1/1;cursor:crosshair}
+.views{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.views canvas{aspect-ratio:1/1.05}
+#view3d{aspect-ratio:4/3.2;cursor:grab;background:var(--bg);border:1px solid var(--line)}
+#view3d:active{cursor:grabbing}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.row label{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+input[type=range]{accent-color:var(--cord)}
+.bars{display:grid;grid-template-columns:90px 1fr 44px;gap:5px 8px;font-size:11px;color:var(--muted);margin-top:12px;align-items:center}
+.bar{height:10px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--cord)}
+.bar.locked i{background:var(--lock)}
+.feedback{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chip{font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.chip.active{border-color:var(--lock);color:var(--lock)}
+.chip.vib.active{border-color:var(--blue);color:var(--blue)}
+.chip.good.active{border-color:var(--ok);color:var(--ok)}
+.axes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.axis{border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--muted)}
+.axis b{display:block;font:15px monospace;color:var(--ink);margin-top:3px}
+code,.mono{font-family:monospace;font-size:12px}
+#cmd{margin-top:10px;color:var(--muted)}
+#message{font-size:12px;color:var(--muted);margin-top:10px;min-height:18px}
+details{margin-top:14px;font-size:12px;color:var(--muted);line-height:1.6}
+summary{cursor:pointer;color:var(--ink)}
+#log{font:11px monospace;white-space:pre-wrap;max-height:160px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:8px;margin-top:8px}
+.note{font-size:11px;color:var(--muted);line-height:1.6;margin-top:10px;border-left:3px solid var(--cord);padding-left:10px}
+.full{grid-column:1/-1}
+@media(max-width:900px){main{grid-template-columns:1fr}.views{grid-template-columns:1fr}.axes{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand"><div class="mark">≋</div><div><h1>Membran-Steuerung</h1><div class="eyebrow">Robotarm · Interface Design · Konzeptprototyp</div></div></div>
+ <div class="conn">
+  <span class="status" id="mem-status">Membran: Simulation</span>
+  <button id="mem-connect">Membran-Arduino ↗</button>
+  <span class="status" id="rob-status">Roboter: Vorschau</span>
+  <button class="primary" id="rob-connect">Roboter verbinden ↗</button>
+  <button id="theme" aria-label="Farbmodus wechseln">☾</button>
+ </div>
+</header>
+<main>
+ <section class="card">
+  <h2>Membran</h2>
+  <div class="sub">Beim Plattform-Aufbau ist das Tuch gebogen, hier flach abgewickelt: links/rechts = Roboter dreht sich, hineindrücken = greift weiter raus, oben/unten = Höhe.<br>Maus über dem Tuch = Position · W = hineindrücken, S = zurück (Tiefe bleibt stehen) · Maustaste halten = kurz hineindrücken · Leertaste oder Knopf = greifen · Pfeiltasten bewegen, wenn das Tuch ausgewählt ist</div>
+  <canvas id="membrane" tabindex="0" aria-label="Simulierte Stoffmembran. Zeigen, drücken und greifen steuert den Roboter."></canvas>
+  <div class="row">
+   <button id="grip-btn" aria-pressed="false">Greifen (Leertaste)</button>
+   <label for="base-depth">Tiefe (W/S) <input id="base-depth" type="range" min="0" max="100" value="0"></label>
+   <span class="mono" id="depth-out">Tiefe 0 %</span>
+  </div>
+  <div class="feedback" aria-live="polite">
+   <span class="chip" id="fb-wall">Anstoßen → Seite gesperrt</span>
+   <span class="chip" id="fb-hold">Hält etwas → oben gesperrt</span>
+   <span class="chip vib" id="fb-vib">Vibration</span>
+   <span class="chip active good" id="fb-free">Frei</span>
+  </div>
+  <div class="bars" id="bars"></div>
+ </section>
+
+ <section class="card">
+  <h2>Raum · 3D</h2>
+  <div class="sub">Ziehen = drehen · Mausrad = zoomen · Rechtsklick ziehen = verschieben · dünn grau: Ziel aus der Membran · rot gestrichelt: Arbeitsbereich</div>
+  <canvas id="view3d" aria-label="3D-Ansicht: Roboter, Tisch, Blöcke und die Membran mit Hand der Besucherin"></canvas>
+  <div class="row">
+   <span class="eyebrow">Blick</span>
+   <button data-cam="visitor">Besucherin</button><button data-cam="overview">Übersicht</button><button data-cam="side">Seite</button><button data-cam="top">Oben</button>
+  </div>
+  <details><summary>2D-Ansichten (Seite / Besucherin)</summary>
+  <div class="views" style="margin-top:10px">
+   <div><canvas id="side" aria-label="Seitenansicht des Roboters"></canvas><div class="sub" style="margin-top:6px">Seitenansicht · Besucherin steht rechts</div></div>
+   <div><canvas id="front" aria-label="Roboter aus Sicht der Besucherin"></canvas><div class="sub" style="margin-top:6px">Blick der Besucherin auf den Roboter</div></div>
+  </div></details>
+  <div class="axes" id="axes"></div>
+  <div id="cmd" class="mono"></div>
+  <div class="row">
+   <button id="live" aria-pressed="false" disabled>Live senden: aus</button>
+   <button class="stop" id="stop">Stopp (Esc)</button>
+   <button id="neutral">Nullpose</button>
+   <label for="speed">Tempo <input id="speed" type="range" min="10" max="100" value="40"></label>
+  </div>
+  <div id="message" role="status" aria-live="polite">Simulation aktiv. Roboter-USB funktioniert in Chrome oder Edge.</div>
+ </section>
+
+ <section class="card full">
+  <h2>Einstellungen</h2>
+  <div class="row">
+   <label for="mount">Montage <select id="mount"><option value="table">Plattform auf dem Tisch</option><option value="wall">Wand</option></select></label>
+   <label for="pitch">Greifer zeigt <select id="pitch"></select></label>
+   <label for="depthdir">Tiefer drücken <select id="depthdir"><option value="in">Greifer fährt weg von der Besucherin</option><option value="out">Greifer kommt auf die Besucherin zu</option></select></label>
+   <label><input type="checkbox" id="mirror"> spiegeln (links ↔ rechts)</label>
+   <label><input type="checkbox" id="blocks" checked> virtuelle Blöcke</label>
+  </div>
+  <div class="note">Konzeptprototyp, nicht am echten Roboter erprobt. Kinematik, Kalibrierung und USB-Befehle stammen aus „Roboter Achsen.txt“, der Arm sitzt vorne an einer 15-cm-Plattform auf dem Tisch und greift nach unten vor die Plattform (Ursprung = Plattform-Oberseite, Achsen wie in der Doku). Maße von Plattform und Tisch sind geschätzt. Offen bleiben laut ACHSEN-ABGLEICH die Drehrichtung von Achse 5 und die Öffnungsrichtung von Achse 6. Live erst nach „Position übernehmen“, mit niedrigem Tempo und mit der Hand am Stopp. Es wird keine Kollision zwischen den Armgliedern geprüft.</div>
+  <details>
+   <summary>So funktioniert die Membran (und was der Arduino schicken soll)</summary>
+   <p><b>Simulation:</b> Aus Position (links/rechts, oben/unten) und Drucktiefe wird ein Zielpunkt im Arbeitsbereich berechnet. Die inverse Kinematik sucht Gelenkwinkel dafür. Ist der Punkt nicht erreichbar oder stößt der Greifer an Regal, Boden oder Wand, bleibt die Hand am letzten erreichbaren Punkt stehen und die Schnüre auf dieser Seite werden gesperrt. Das ist das Feedback: Das Tuch wird in diese Richtung hart. Hält der Greifer einen Block, werden die oberen Schnüre gesperrt, das Tuch zieht nach unten. Beim Greifen vibriert der Knoten kurz.</p>
+   <p><b>Echte Membran:</b> Arduino mit 8 Wägezellen (HX711) und einem Drucksensor im Greifknoten. Er sendet mit 115200 Baud etwa 30-mal pro Sekunde eine Zeile <code>F f1 f2 f3 f4 f5 f6 f7 f8 k</code> (Reihenfolge der Schnüre: oben links, oben, oben rechts, rechts, unten rechts, unten, unten links, links; k = Knoten 0–1023). Die Seite schickt zurück <code>L 00000000</code> (1 = Schnur sperren) und <code>V 1</code>/<code>V 0</code> (Vibration). Vor dem Benutzen „Nullen“ ohne Hand, dann einmal tief drücken und „Tief kalibrieren“.</p>
+   <div class="row"><button id="tare" disabled>Nullen</button><button id="calib" disabled>Tief kalibrieren</button></div>
+   <div id="log"></div>
+  </details>
+ </section>
+</main>
+<script>
+'use strict';
+// ===== CORE START (Kinematik, ohne DOM – wird auch im Offline-Test benutzt) =====
+const AXES=[['Basis',800,3450],['Schulter',900,3200],['Ellbogen',1000,3050],['Handgelenk',900,3200],['Rotation',180,3900],['Greifer',1230,2600]];
+const L1=115,L2=135,L3=165,RAD=Math.PI/180,DEG=180/Math.PI;
+const NEUTRAL=[1929,2044,2093,2044,2056,2445];
+const GRIP_OPEN=2445,GRIP_CLOSED=1100,GRIP_HOLD=1750; // Annahme: kleinerer Wert = Greifer zu (am Roboter prüfen)
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t;
+const angle=(i,v)=>(AXES[i][1]+v/4095*(AXES[i][2]-AXES[i][1])-2048)*360/4096;
+const raw=(i,a)=>Math.round(clamp((2048+a*4096/360-AXES[i][1])/(AXES[i][2]-AXES[i][1])*4095,0,4095));
+const LIM=AXES.map((_,i)=>[angle(i,0),angle(i,4095)]);
+// Wandmontage wie robot-control-3d.html: Arm-Z (oben laut Doku) zeigt aus der Wand (Welt +X), Arm-X (vorne) zeigt nach unten.
+const F=p=>[p[2],-p[1],-p[0]],Finv=q=>[-q[2],-q[1],q[0]];
+const toWorld=(p,mount)=>mount==='wall'?F(p):p,toArm=(q,mount)=>mount==='wall'?Finv(q):q;
+// Vorwärtskinematik im Arm-Koordinatensystem der Doku: [Basis, Ellbogen, Handgelenk, Spitze]
+function armPoints(v){
+ const t=angle(0,v[0])*RAD,a1=(90-angle(1,v[1]))*RAD,a2=a1-(90+angle(2,v[2]))*RAD,a3=a2-angle(3,v[3])*RAD;
+ const pl=[[0,0]];
+ [[L1,a1],[L2,a2],[L3,a3]].forEach(([l,a])=>{const q=pl[pl.length-1];pl.push([q[0]+l*Math.cos(a),q[1]+l*Math.sin(a)])});
+ return pl.map(([r,z])=>[r*Math.cos(t),r*Math.sin(t),z]);
+}
+const worldPoints=(v,mount)=>armPoints(v).map(p=>toWorld(p,mount));
+const SCENES={
+ wall:{floor:-385,ws:{x:[260,130],y:150,z:[-265,-90]},shelf:{x:[140,290],y:[-150,150],top:-255},
+  blocks:[[190,-70],[235,30],[165,95]],pitch:{unten:['nach unten',0],aussen:['zur Besucherin',90]}},
+ // Plattform (15 cm) auf dem Tisch: Roboter sitzt vorne an der Kante (Ursprung = Plattform-Oberseite),
+ // greift nach unten vor die Plattform; die Steinchen liegen neben ihm auf der Plattform.
+ // Der Mensch steht HINTER dem Roboter (behind): hineindrücken = Greifer fährt vom Menschen weg.
+ table:{floor:-150,behind:true,ws:{x:[-40,270],y:210,z:[-135,90]},polar:{yaw:[-105,121],r:[100,320]},shelf:null,platform:{x:[-280,25],y:[-260,260],top:0},
+  blocks:[[-25,135],[-75,135],[-25,190]],pitch:{unten:['nach unten',-90],vorn:['nach vorn',0]}}
+};
+// Auf welcher Höhe liegt ein abgelegter Block?
+function supportZ(x,y,mount){const s=SCENES[mount],pl=s.platform,sh=s.shelf;
+ if(pl&&x>pl.x[0]&&x<pl.x[1]&&y>pl.y[0]&&y<pl.y[1])return pl.top;
+ if(sh&&x>sh.x[0]&&x<sh.x[1]&&y>sh.y[0]&&y<sh.y[1])return sh.top;
+ return s.floor}
+const BLOCK=30;
+// Umriss des Arbeitsbereichs als Liniensegmente (Kasten oder Kreisring-Stück)
+function wsSegments(mount){const s=SCENES[mount],ws=s.ws,seg=[];
+ if(s.polar){const [y0,y1]=s.polar.yaw,[r0,r1]=s.polar.r,P=(r,a,z)=>[r*Math.cos(a*RAD),r*Math.sin(a*RAD),z],n=20;
+  for(const z of ws.z)for(const r of [r0,r1])for(let i=0;i<n;i++)seg.push([P(r,lerp(y0,y1,i/n),z),P(r,lerp(y0,y1,(i+1)/n),z)]);
+  for(const a of [y0,y1]){for(const z of ws.z)seg.push([P(r0,a,z),P(r1,a,z)]);for(const r of [r0,r1])seg.push([P(r,a,ws.z[0]),P(r,a,ws.z[1])])}
+  return seg}
+ const X=ws.x,Z=ws.z,Y=[-ws.y,ws.y],c=(i,j,k)=>[X[i],Y[j],Z[k]];
+ [[0,0,0,1,0,0],[0,1,0,1,1,0],[0,0,1,1,0,1],[0,1,1,1,1,1],[0,0,0,0,1,0],[1,0,0,1,1,0],[0,0,1,0,1,1],[1,0,1,1,1,1],[0,0,0,0,0,1],[1,0,0,1,0,1],[0,1,0,0,1,1],[1,1,0,1,1,1]].forEach(e=>seg.push([c(e[0],e[1],e[2]),c(e[3],e[4],e[5])]));
+ return seg}
+// Liegt ein Weltpunkt in einem Hindernis? (Wand, Tisch/Boden, Plattform, Regal)
+function blocked(p,mount,isTip){
+ const s=SCENES[mount];
+ if(mount==='wall'&&p[0]<5)return 'Wand';
+ if(p[2]<s.floor+(isTip?3:10))return 'Boden';
+ if(s.platform&&p[0]>s.platform.x[0]&&p[0]<s.platform.x[1]&&p[1]>s.platform.y[0]&&p[1]<s.platform.y[1]&&p[2]<s.platform.top+(isTip?3:6)&&Math.hypot(p[0],p[1],p[2])>60)return 'Plattform';
+ if(s.shelf&&p[0]>s.shelf.x[0]&&p[0]<s.shelf.x[1]&&p[1]>s.shelf.y[0]&&p[1]<s.shelf.y[1]&&p[2]<s.shelf.top+(isTip?2:10)&&p[2]>s.shelf.top-60)return 'Regal';
+ return null;
+}
+function poseProblem(v,mount){
+ const pts=worldPoints(v,mount);
+ for(let i=1;i<pts.length;i++){const b=blocked(pts[i],mount,i===3);if(b)return b}
+ // Zwischenpunkte der Glieder prüfen
+ for(let i=1;i<pts.length-1;i++)for(let k=1;k<4;k++){const m=pts[i].map((c,j)=>c+(pts[i+1][j]-c)*k/4);const b=blocked(m,mount,false);if(b)return b}
+ return null;
+}
+// Inverse Kinematik: Zielpunkt der Greiferspitze (Welt) -> USB-Werte der Achsen 1-4
+function solveIK(target,mount,pitchPref,prev,maxJump=0,w=0.15){
+ const a=toArm(target,mount),r=Math.hypot(a[0],a[1]),z=a[2];
+ const yaw=r<1?angle(0,prev[0]):Math.atan2(a[1],a[0])*DEG;
+ if(yaw<LIM[0][0]||yaw>LIM[0][1])return {ok:false,why:'Basis-Anschlag'};
+ let best=null,why='nicht erreichbar',hit=null;
+ const offsets=[0];for(let o=5;o<=120;o+=5)offsets.push(o,-o);
+ for(const off of offsets){
+  const phi=(pitchPref+off)*RAD,wr=r-L3*Math.cos(phi),wz=z-L3*Math.sin(phi),d=Math.hypot(wr,wz);
+  if(d>L1+L2-0.5||d<Math.abs(L1-L2)+1)continue;
+  const base=Math.atan2(wz,wr),k=Math.acos(clamp((L1*L1+d*d-L2*L2)/(2*L1*d),-1,1));
+  for(const sgn of [1,-1]){
+   const a1=base+sgn*k,a2=Math.atan2(wz-L1*Math.sin(a1),wr-L1*Math.cos(a1));
+   const s2=90-a1*DEG,s3=norm(a1*DEG-90-a2*DEG),s4=norm(a2*DEG-phi*DEG);
+   const q=[yaw,s2,s3,s4];
+   if(q.some((x,i)=>x<LIM[i][0]||x>LIM[i][1])){why='Gelenk-Anschlag';continue}
+   const v=[raw(0,yaw),raw(1,s2),raw(2,s3),raw(3,s4),prev[4],prev[5]];
+   const jump=Math.max(...v.slice(0,4).map((x,i)=>Math.abs(angle(i,x)-angle(i,prev[i]))));
+   if(maxJump&&jump>maxJump){why='zu großer Sprung';continue}
+   const pr=poseProblem(v,mount);if(pr){hit=hit||pr;continue}
+   const cost=Math.abs(off)*2+v.slice(0,4).reduce((s,x,i)=>s+Math.abs(angle(i,x)-angle(i,prev[i])),0)*w;
+   if(!best||cost<best.cost)best={ok:true,values:v,cost};
+  }
+  if(best&&Math.abs(off)>=Math.abs(best.cost/2)+10)break;
+ }
+ return best||{ok:false,why:hit||why};
+}
+function norm(a){while(a>180)a-=360;while(a<=-180)a+=360;return a}
+// Membran (u: -1 links … 1 rechts aus Sicht der Besucherin, v: -1 unten … 1 oben, d: 0 … 1 Tiefe) -> Zielpunkt
+function membraneToTarget(m,mount,opts){
+ const ws=SCENES[mount].ws,dd=opts.depthDir==='in'?m.d:1-m.d;
+ // Steht der Mensch hinter dem Roboter, ist sein Rechts auch rechts für den Roboter (+Y); gegenüber ist es −Y.
+ const side=(SCENES[mount].behind?1:-1)*(opts.mirror?-1:1),pol=SCENES[mount].polar;
+ if(pol){ // Drehen statt Verschieben: links/rechts = Basisdrehung, Drücken = Reichweite, oben/unten = Höhe
+  const u=side*m.u,yaw=(u<0?-u*pol.yaw[0]:u*pol.yaw[1])*RAD,r=lerp(pol.r[0],pol.r[1],dd);
+  return [r*Math.cos(yaw),r*Math.sin(yaw),lerp(ws.z[0],ws.z[1],(m.v+1)/2)]}
+ return [lerp(ws.x[0],ws.x[1],dd),side*m.u*ws.y,lerp(ws.z[0],ws.z[1],(m.v+1)/2)];
+}
+// Schnüre: Ankerrichtungen in Membran-Koordinaten (u nach rechts, v nach oben)
+const CORDS=[['oben links',-1,1],['oben',0,1],['oben rechts',1,1],['rechts',1,0],['unten rechts',1,-1],['unten',0,-1],['unten links',-1,-1],['links',-1,0]];
+function cordForces(m){
+ return CORDS.map(([,cx,cy])=>{const ax=cx*1.15,ay=cy*1.15,dist=Math.hypot(m.u-ax,m.v-ay);return 8+m.d*120/(dist+0.6)});
+}
+// ===== CORE END =====
+
+const $=id=>document.getElementById(id);
+const S={mount:'table',pitchKey:'unten',depthDir:'in',mirror:false,blocks:true,speed:.4};
+let input={u:0,v:0.5,d:0},eff={u:0,v:0.5,d:0},lastGood={u:0,v:0.5,d:0};
+let cmd=[...NEUTRAL],target=[...NEUTRAL],targetOk=true,lastTarget=null;
+let locks=new Array(8).fill(false),lockReason='',vibUntil=0,overloadUntil=0;
+let pressing=false,pressDepth=0,gripKey=false,gripBtn=false,held=null,blocks=[];
+let paused=false;
+function resetBlocks(){blocks=SCENES[S.mount].blocks.map((b,i)=>({p:[b[0],b[1],supportZ(b[0],b[1],S.mount)+BLOCK/2],c:['--block1','--block2','--block3'][i],name:'ABC'[i]}));held=null}
+function fillPitch(){const sel=$('pitch');sel.innerHTML='';Object.entries(SCENES[S.mount].pitch).forEach(([k,[label]])=>{const o=document.createElement('option');o.value=k;o.textContent=label;sel.append(o)});S.pitchKey=sel.value}
+fillPitch();resetBlocks();
+
+// ---------- Membran-Eingabe (Simulation) ----------
+const mem=$('membrane');
+const FAB=0.72; // Tuchanteil der Canvas-Breite
+function memPos(e){const r=mem.getBoundingClientRect();const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;input.u=clamp((x-.5)/(FAB/2),-1,1);input.v=clamp(-(y-.5)/(FAB/2),-1,1)}
+mem.addEventListener('pointermove',e=>{if(!realMem)memPos(e)});
+mem.addEventListener('pointerdown',e=>{if(realMem)return;memPos(e);pressing=true;mem.setPointerCapture(e.pointerId);mem.focus()});
+mem.addEventListener('pointerup',()=>pressing=false);mem.addEventListener('pointercancel',()=>pressing=false);
+mem.addEventListener('keydown',e=>{const st=.06;if(e.key==='ArrowLeft')input.u=clamp(input.u-st,-1,1);else if(e.key==='ArrowRight')input.u=clamp(input.u+st,-1,1);else if(e.key==='ArrowUp')input.v=clamp(input.v+st,-1,1);else if(e.key==='ArrowDown')input.v=clamp(input.v-st,-1,1);else return;e.preventDefault()});
+addEventListener('keydown',e=>{if(e.code==='Space'&&!/INPUT|SELECT|BUTTON/.test(document.activeElement.tagName)||e.code==='Space'&&document.activeElement===mem){gripKey=true;e.preventDefault()}if(e.key==='Escape')stopAll()});
+addEventListener('keyup',e=>{if(e.code==='Space')gripKey=false});
+// W/S: Tiefe halten – W drückt hinein, S zieht zurück, beim Loslassen bleibt die Tiefe stehen
+const depthKeys=new Set();
+addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;const k=e.key.toLowerCase();if(k==='w'||k==='s'){depthKeys.add(k);e.preventDefault()}});
+addEventListener('keyup',e=>depthKeys.delete(e.key.toLowerCase()));
+addEventListener('blur',()=>depthKeys.clear());
+$('grip-btn').onclick=()=>{gripBtn=!gripBtn;$('grip-btn').setAttribute('aria-pressed',gripBtn);$('grip-btn').classList.toggle('on',gripBtn)};
+
+// ---------- Einstellungen ----------
+$('mount').onchange=e=>{S.mount=e.target.value;fillPitch();resetBlocks();setCam('overview');cmd=[...NEUTRAL];tipCmd=null;lastGood={...input,d:0};msg('Montage gewechselt. Bei verbundenem Roboter erst Position prüfen.')};
+$('pitch').onchange=e=>S.pitchKey=e.target.value;
+$('depthdir').onchange=e=>S.depthDir=e.target.value;
+$('mirror').onchange=e=>S.mirror=e.target.checked;
+$('blocks').onchange=e=>{S.blocks=e.target.checked;if(!S.blocks)held=null};
+$('speed').oninput=e=>S.speed=e.target.value/100;
+$('neutral').onclick=()=>{input={u:0,v:0.5,d:0};$('base-depth').value=0;msg('Membran auf Mitte gesetzt.')};
+$('stop').onclick=stopAll;
+function stopAll(){paused=!paused;$('stop').textContent=paused?'Weiter':'Stopp (Esc)';if(paused&&live)setLive(false);msg(paused?'Gestoppt: Es werden keine Befehle mehr gesendet. Eine bereits laufende Servobewegung endet trotzdem noch.':'Weiter in der Simulation.')}
+function msg(s){$('message').textContent=s}
+function log(s){const l=$('log');l.textContent=(l.textContent+s+'\n').split('\n').slice(-80).join('\n');l.scrollTop=l.scrollHeight}
+
+// ---------- Feedback: welche Schnüre sperren ----------
+function solveFor(m){return solveIK(membraneToTarget(m,S.mount,S),S.mount,SCENES[S.mount].pitch[S.pitchKey][1],cmd)}
+function updateTarget(){
+ const res=solveFor(input);
+ let wallLocks=new Array(8).fill(false);lockReason='';
+ if(res.ok){eff={...input};lastGood={...input};target=res.values;targetOk=true}
+ else{
+  // Binärsuche: wie weit kommt die Hand von der letzten erreichbaren Stelle aus?
+  let lo=0,hi=1,bestRes=null;
+  for(let i=0;i<10;i++){const t=(lo+hi)/2,m={u:lerp(lastGood.u,input.u,t),v:lerp(lastGood.v,input.v,t),d:lerp(lastGood.d,input.d,t)};const r=solveFor(m);if(r.ok){lo=t;bestRes=r}else hi=t}
+  const t=lo;eff={u:lerp(lastGood.u,input.u,t),v:lerp(lastGood.v,input.v,t),d:lerp(lastGood.d,input.d,t)};
+  if(bestRes){target=bestRes.values;lastGood={...eff}}
+  targetOk=false;lockReason=res.why;
+  const du=input.u-eff.u,dv=input.v-eff.v,dd=input.d-eff.d,l=Math.hypot(du,dv);
+  if(dd>0.02)wallLocks.fill(true);
+  if(l>0.02)CORDS.forEach(([,cx,cy],i)=>{const c=Math.hypot(cx,cy);if((du*cx+dv*cy)/(l*c)>0.35)wallLocks[i]=true});
+ }
+ const holdLocks=CORDS.map(([,,cy])=>held!==null&&cy===1);
+ const over=performance.now()<overloadUntil;
+ locks=wallLocks.map((w,i)=>w||holdLocks[i]||over);
+ const g=gripKey||gripBtn||realGrip;
+ target[5]=g?(held!==null?GRIP_HOLD:GRIP_CLOSED):GRIP_OPEN;
+ target[4]=cmd[4];
+ return wallLocks.some(Boolean);
+}
+
+// ---------- Simulation: Greifen von Blöcken ----------
+let prevGrip=false;
+function simulateGrip(){
+ const g=gripKey||gripBtn||realGrip;
+ const tip=worldPoints(cmd,S.mount)[3];
+ if(g&&!prevGrip){
+  vibUntil=performance.now()+250;
+  if(S.blocks&&!connected){let near=null,nd=34;blocks.forEach((b,i)=>{const d=Math.hypot(...b.p.map((c,k)=>c-tip[k]));if(d<nd){nd=d;near=i}});if(near!==null){held=near;vibUntil=performance.now()+450}}
+ }
+ if(!g&&prevGrip&&held!==null){const b=blocks[held];b.p[2]=supportZ(b.p[0],b.p[1],S.mount)+BLOCK/2;held=null}
+ if(held!==null)blocks[held].p=[tip[0],tip[1],tip[2]-4];
+ prevGrip=g;
+}
+
+// ---------- Bewegung mit Tempolimit ----------
+// Die Greiferspitze fährt auf einer geraden Linie zum Ziel (nicht quer durch den Raum),
+// jeder Zwischenpunkt wird neu berechnet und auf Hindernisse geprüft.
+const MAXDEG=[45,45,45,50,60,120];let tipCmd=null,avoidUntil=0; // tipCmd bleibt für Kompatibilität, Position kommt immer aus cmd
+function stepRobot(dt){
+ if(paused)return;
+ if(connected&&!live)return; // echter Arm steht still, solange nicht live gesendet wird
+ const tip=worldPoints(cmd,S.mount)[3],goal=worldPoints(target,S.mount)[3];
+ const dist=Math.hypot(...goal.map((c,i)=>c-tip[i])),stepMm=Math.max(.5,260*S.speed*dt);
+ // Werkzeugneigung nur langsam zur gewünschten Neigung drehen, damit der Arm nicht umklappt
+ const cur=-(angle(1,cmd[1])+angle(2,cmd[2])+angle(3,cmd[3])),pref=SCENES[S.mount].pitch[S.pitchKey][1];
+ const pitch=cur+clamp(pref-cur,-40*S.speed*dt*2,40*S.speed*dt*2);
+ const limit=i=>MAXDEG[i]*S.speed*dt/((AXES[i][2]-AXES[i][1])*360/4096/4095);
+ const step=(src,i)=>Math.round(cmd[i]+clamp(src[i]-cmd[i],-limit(i),limit(i)));
+ const ik=c=>{const r=solveIK(c,S.mount,pitch,cmd,4,0.6);return r.ok?r.values:null};
+ const tryPose=p=>{if(p&&!poseProblem(p,S.mount)){cmd=p;return true}return false};
+ const g56=[4,5].map(i=>step(target,i));
+ const joint=()=>tryPose(cmd.map((v,i)=>step(target,i)));
+ const straight=()=>{const p=ik(dist<=stepMm?goal:tip.map((c,i)=>c+(goal[i]-c)*stepMm/dist));return p&&tryPose([...p.slice(0,4),...g56])};
+ const lift=()=>{const p=ik([tip[0],tip[1],tip[2]+stepMm]);return p&&tryPose([...p.slice(0,4),...g56])};
+ const back=()=>{const p=ik([tip[0]+(S.mount==='wall'?-stepMm:0),tip[1],tip[2]+(S.mount==='wall'?0:stepMm)]);return p&&tryPose([...p.slice(0,4),...g56])};
+ // Normal: gebremst in Gelenkwinkeln auf die Zielpose zu (jeder Schritt wird auf Hindernisse geprüft).
+ // Nach einem Anstoßen eine Weile im Ausweichmodus: Spitze gerade aufs Ziel, sonst anheben, sonst zurückziehen.
+ const now=performance.now();
+ if(now>avoidUntil){if(joint())return;avoidUntil=now+1500}
+ if(straight()||lift()||back()||joint())return;
+ cmd=[...cmd.slice(0,4),...g56];
+}
+
+// ---------- Zeichnen ----------
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function fit(c){const r=c.getBoundingClientRect(),dpr=devicePixelRatio||1;if(c.width!==Math.round(r.width*dpr)||c.height!==Math.round(r.height*dpr)){c.width=Math.round(r.width*dpr);c.height=Math.round(r.height*dpr)}const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return [x,r.width,r.height]}
+function drawMembrane(){
+ const [x,W,H]=fit(mem),cx=W/2,cy=H/2,fw=W*FAB/2,fh=H*FAB/2;
+ const P=(u,v)=>[cx+u*fw,cy-v*fh];
+ x.clearRect(0,0,W,H);
+ x.strokeStyle=css('--muted');x.globalAlpha=.4;x.lineWidth=10;x.strokeRect(10,10,W-20,H-20);x.globalAlpha=1;
+ const f=realMem?realForces:cordForces(eff),fmax=Math.max(40,...f);
+ const anchors=CORDS.map(([,ax,ay])=>[cx+ax*(W/2-18),cy-ay*(H/2-18)]);
+ const ends=CORDS.map(([,ax,ay])=>P(ax,ay));
+ CORDS.forEach((_,i)=>{x.strokeStyle=locks[i]?css('--lock'):css('--cord');x.lineWidth=1+4*f[i]/fmax;x.globalAlpha=.35+.65*f[i]/fmax;x.beginPath();x.moveTo(...anchors[i]);x.lineTo(...ends[i]);x.stroke();x.globalAlpha=1;
+  x.fillStyle=locks[i]?css('--lock'):css('--ghost');x.fillRect(anchors[i][0]-9,anchors[i][1]-7,18,14)});
+ x.fillStyle=css('--fabric');x.strokeStyle=css('--fabric-edge');x.lineWidth=1.5;x.fillRect(cx-fw,cy-fh,2*fw,2*fh);x.strokeRect(cx-fw,cy-fh,2*fw,2*fh);
+ const [hx,hy]=P(eff.u,eff.v);
+ x.save();x.beginPath();x.rect(cx-fw,cy-fh,2*fw,2*fh);x.clip();
+ x.strokeStyle=css('--fabric-edge');for(let k=1;k<=4;k++){x.globalAlpha=Math.max(0,.55-k*.12)*(.3+eff.d);x.beginPath();x.arc(hx,hy,12+k*(8+eff.d*28),0,Math.PI*2);x.stroke()}x.globalAlpha=1;x.restore();
+ if(!targetOk){const [ix,iy]=P(input.u,input.v);x.setLineDash([4,4]);x.strokeStyle=css('--lock');x.beginPath();x.moveTo(hx,hy);x.lineTo(ix,iy);x.stroke();x.beginPath();x.arc(ix,iy,10,0,Math.PI*2);x.stroke();x.setLineDash([])}
+ const g=gripKey||gripBtn||realGrip;
+ x.fillStyle=css('--muted');x.globalAlpha=.85;x.beginPath();x.arc(hx,hy,11+eff.d*10,0,Math.PI*2);x.fill();x.globalAlpha=1;
+ if(g){x.strokeStyle=css('--ink');x.lineWidth=2;x.beginPath();x.arc(hx,hy,7,0,Math.PI*2);x.stroke()}
+ if(performance.now()<vibUntil){x.strokeStyle=css('--blue');x.lineWidth=1.5;for(let k=0;k<3;k++){x.beginPath();x.arc(hx,hy,18+eff.d*10+k*5+Math.random()*2,0,Math.PI*2);x.stroke()}}
+ x.fillStyle=css('--muted');x.font='11px Arial';x.textAlign='center';x.fillText(realMem?'echte Membran':'Simulation',cx,H-24);
+ // Balken
+ $('bars').innerHTML=CORDS.map(([n],i)=>`<span>${n}</span><span class="bar${locks[i]?' locked':''}"><i style="width:${Math.round(f[i]/fmax*100)}%"></i></span><span class="mono">${locks[i]?'gesperrt':Math.round(f[i])}</span>`).join('');
+}
+function view(c,mode){
+ const [x,W,H]=fit(c),s=SCENES[S.mount],wall=S.mount==='wall';
+ const box=wall?{h:[-90,460],v:[-410,140]}:{h:[-320,460],v:[-190,480]};
+ const hb=mode==='side'?box.h:[-275,275];
+ const sc=Math.min(W/(hb[1]-hb[0]),H/(box.v[1]-box.v[0]));
+ const ox=(W-(hb[1]-hb[0])*sc)/2,oy=(H-(box.v[1]-box.v[0])*sc)/2;
+ const bh=!!s.behind;const pr=p=>{const h=mode==='side'?p[0]:(bh?p[1]:-p[1]);return [ox+(h-hb[0])*sc,oy+(box.v[1]-p[2])*sc]};
+ x.clearRect(0,0,W,H);
+ // Boden
+ x.strokeStyle=css('--muted');x.lineWidth=1;x.globalAlpha=.5;const fl=pr([0,0,s.floor])[1];x.beginPath();x.moveTo(0,fl);x.lineTo(W,fl);x.stroke();x.globalAlpha=1;
+ // Wand / Montage
+ x.fillStyle=css('--wall');
+ if(wall){if(mode==='side'){const a=pr([-20,0,120]),b=pr([0,0,s.floor]);x.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1])}else{const a=pr([0,95,95]),b=pr([0,-95,-95]);x.globalAlpha=.35;x.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);x.globalAlpha=1}}
+ else{const pl=s.platform,a=pr([mode==='side'?pl.x[0]:0,pl.y[1],pl.top]),b=pr([mode==='side'?pl.x[1]:0,pl.y[0],s.floor]);x.globalAlpha=.6;x.fillRect(Math.min(a[0],b[0]),a[1],Math.abs(b[0]-a[0]),b[1]-a[1]);x.globalAlpha=1}
+ // Regal
+ if(s.shelf){x.fillStyle=css('--ghost');const a=pr([s.shelf.x[0],s.shelf.y[1],s.shelf.top]),b=pr([s.shelf.x[1],s.shelf.y[0],s.shelf.top-12]);x.fillRect(Math.min(a[0],b[0]),a[1],Math.abs(b[0]-a[0]),b[1]-a[1])}
+ // Arbeitsbereich
+ x.setLineDash([5,5]);x.strokeStyle=css('--cord');x.globalAlpha=.5;x.lineWidth=1;x.beginPath();wsSegments(S.mount).forEach(([a,b])=>{const p=pr(a),q=pr(b);x.moveTo(p[0],p[1]);x.lineTo(q[0],q[1])});x.stroke();x.setLineDash([]);x.globalAlpha=1;
+ // Blöcke
+ if(S.blocks)blocks.forEach(b=>{const p=pr(b.p),h=BLOCK*sc;x.fillStyle=css(b.c);x.fillRect(p[0]-h/2,p[1]-h/2,h,h);x.fillStyle=css('--muted');x.font='10px Arial';x.textAlign='center';x.fillText(b.name,p[0],p[1]-h/2-4)});
+ // Ziel-Arm (Geist) und Arm
+ drawArm(x,worldPoints(target,S.mount).map(pr),css('--ghost'),2,target,sc);
+ drawArm(x,worldPoints(cmd,S.mount).map(pr),css('--arm'),Math.max(5,9*sc),cmd,sc);
+ // Zielkreuz
+ const tp=pr(membraneToTarget(eff,S.mount,S));x.strokeStyle=targetOk?css('--cord'):css('--lock');x.lineWidth=1.5;x.beginPath();x.moveTo(tp[0]-7,tp[1]);x.lineTo(tp[0]+7,tp[1]);x.moveTo(tp[0],tp[1]-7);x.lineTo(tp[0],tp[1]+7);x.stroke();
+ if(mode==='side'){x.fillStyle=css('--muted');x.font='11px Arial';if(bh){x.textAlign='left';x.fillText('← Besucherin',8,16)}else{x.textAlign='right';x.fillText('Besucherin →',W-8,16)}}
+}
+function drawArm(x,pts,color,w,v,sc){
+ x.strokeStyle=color;x.lineCap='round';x.lineJoin='round';x.lineWidth=w;x.beginPath();x.moveTo(...pts[0]);for(let i=1;i<4;i++)x.lineTo(...pts[i]);x.stroke();
+ x.fillStyle=color;pts.slice(0,3).forEach(p=>{x.beginPath();x.arc(p[0],p[1],w*.75,0,Math.PI*2);x.fill()});
+ const [a,b]=[pts[2],pts[3]],dir=Math.atan2(b[1]-a[1],b[0]-a[0]),open=clamp((v[5]-GRIP_CLOSED)/(GRIP_OPEN-GRIP_CLOSED),0,1),sp=(0.12+0.4*open),len=22*Math.max(.6,sc*1.3);
+ x.lineWidth=Math.max(2,w*.45);[1,-1].forEach(sg=>{x.beginPath();x.moveTo(...b);x.lineTo(b[0]+Math.cos(dir+sg*sp)*len,b[1]+Math.sin(dir+sg*sp)*len);x.stroke()});
+}
+function panels(){
+ $('axes').innerHTML=AXES.map((a,i)=>`<div class="axis">${i+1} · ${a[0]}<b>${cmd[i]}</b>${angle(i,cmd[i]).toFixed(1)}°</div>`).join('');
+ $('cmd').textContent=`Befehl: A ${cmd.join(' ')}${connected?(live?'  · wird gesendet':'  · nicht gesendet (Live aus)'):'  · Simulation'}`;
+ $('depth-out').textContent=`Tiefe ${Math.round(eff.d*100)} %`;
+ const wallOn=locks.some(Boolean)&&!targetOk,holdOn=held!==null||realHold,vib=performance.now()<vibUntil;
+ $('fb-wall').classList.toggle('active',wallOn);$('fb-wall').textContent=wallOn?`Anstoßen (${lockReason}) → Seite gesperrt`:'Anstoßen → Seite gesperrt';
+ $('fb-hold').classList.toggle('active',holdOn);$('fb-vib').classList.toggle('active',vib);
+ $('fb-free').classList.toggle('active',!wallOn&&!holdOn);
+}
+
+
+// ---------- 3D-Ansicht (eigener kleiner Renderer, ohne Bibliothek) ----------
+// Welt wie in der Doku: X vom Roboter weg (zur Besucherin), Y nach rechts aus Sicht des Roboters, Z nach oben.
+// Die Doku-Achsen sind linkshändig; für das Bild wird Y gespiegelt, damit links/rechts stimmt.
+const V3={add:(a,b)=>a.map((v,i)=>v+b[i]),sub:(a,b)=>a.map((v,i)=>v-b[i]),mul:(a,k)=>a.map(v=>v*k),dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+ cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],unit:a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l)}};
+const CAMS={visitor:{yaw:4,pitch:32,dist:1500,t:[300,0,-120]},overview:{yaw:35,pitch:28,dist:1800,t:[260,0,-160]},side:{yaw:90,pitch:6,dist:1900,t:[240,0,-150]},top:{yaw:0,pitch:84,dist:1800,t:[250,0,-100]}};
+let cam={...CAMS.overview,t:[...CAMS.overview.t]};
+// Blickwinkel, wenn der Mensch hinter dem Roboter steht (Plattform-Aufbau)
+const CAMS_BEHIND={visitor:{yaw:180,pitch:40,dist:2000,t:[-150,0,-20]},overview:{yaw:220,pitch:28,dist:2700,t:[-380,0,-120]},side:{yaw:90,pitch:6,dist:2900,t:[-380,0,-120]},top:{yaw:180,pitch:84,dist:2800,t:[-380,0,-120]}};
+function setCam(k){const c=(SCENES[S.mount].behind?CAMS_BEHIND:CAMS)[k];cam={...c,t:[...c.t]}}
+document.querySelectorAll('[data-cam]').forEach(b=>b.onclick=()=>setCam(b.dataset.cam));setCam('overview');
+(()=>{const c=$('view3d');let drag=null;
+ c.addEventListener('contextmenu',e=>e.preventDefault());
+ c.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,b:e.button,shift:e.shiftKey};c.setPointerCapture(e.pointerId)});
+ c.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+  if(drag.b===2||drag.shift){const y=cam.yaw*RAD,k=cam.dist/900;cam.t=[cam.t[0]+(-Math.sin(y)*dx)*k*-1,cam.t[1]+(Math.cos(y)*dx)*k*-1,cam.t[2]+dy*k];}
+  else{cam.yaw-=dx*.35;cam.pitch=clamp(cam.pitch+dy*.3,-5,89)}});
+ c.addEventListener('pointerup',()=>drag=null);c.addEventListener('pointercancel',()=>drag=null);
+ c.addEventListener('wheel',e=>{e.preventDefault();cam.dist=clamp(cam.dist*Math.exp(e.deltaY*.001),500,5000)},{passive:false});
+})();
+function hexRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return [n>>16&255,n>>8&255,n&255]}
+// Quader entlang einer Strecke a→b
+function beam(items,a,b,w,h,color,opts={}){
+ const d=V3.unit(V3.sub(b,a));let side=V3.cross(d,[0,0,1]);if(Math.hypot(...side)<.1)side=V3.cross(d,[0,1,0]);side=V3.unit(side);
+ if(opts.side)side=V3.unit(opts.side);const up=V3.unit(V3.cross(side,d));
+ const c=(p,sx,sy)=>V3.add(p,V3.add(V3.mul(side,sx*w/2),V3.mul(up,sy*h/2)));
+ const A=[c(a,-1,-1),c(a,1,-1),c(a,1,1),c(a,-1,1)],B=[c(b,-1,-1),c(b,1,-1),c(b,1,1),c(b,-1,1)];
+ for(let i=0;i<4;i++){const j=(i+1)%4;items.push({poly:[A[i],A[j],B[j],B[i]],color,alpha:opts.alpha})}
+ items.push({poly:[...A].reverse(),color,alpha:opts.alpha},{poly:B,color,alpha:opts.alpha});
+}
+function cube(items,c,sx,sy,sz,color,alpha){beam(items,[c[0],c[1],c[2]-sz/2],[c[0],c[1],c[2]+sz/2],sx,sy,color,{side:[1,0,0],alpha})}
+// Große Flächen in Kacheln teilen, damit die Tiefensortierung stimmt
+function tiles(items,c,sx,sy,sz,color,n){for(let i=0;i<n;i++)for(let j=0;j<n;j++)cube(items,[c[0]-sx/2+sx*(i+.5)/n,c[1]-sy/2+sy*(j+.5)/n,c[2]],sx/n,sy/n,sz,color)}
+function line3(items,a,b,color,width=1,dash=null,alpha=1){items.push({line:[a,b],color,width,dash,alpha})}
+function frameOf(){const tbl=S.mount==='table';return tbl?{fx:-1050,cz:60,hw:250,hh:250,floor:-890,curved:{R:560,arc:72}}:{fx:760,cz:-170,hw:250,hh:250,floor:SCENES.wall.floor}}
+function draw3d(){
+ const c=$('view3d');if(!c.offsetWidth)return;const [x,W,H]=fit(c);x.clearRect(0,0,W,H);
+ const items=[],tbl=S.mount==='table',sc=SCENES[S.mount],fr=frameOf();
+ const col={arm:css('--arm'),ghost:css('--ghost'),wall:css('--wall'),cord:css('--cord'),lock:css('--lock'),fab:css('--fabric'),fabE:css('--fabric-edge'),muted:css('--muted'),line:css('--line'),blue:css('--blue')};
+ // Kamera
+ const y=cam.yaw*RAD,pt=cam.pitch*RAD,R=p=>[p[0],-p[1],p[2]];
+ const tgt=R(cam.t),eye=V3.add(tgt,[cam.dist*Math.cos(pt)*Math.cos(y),cam.dist*Math.cos(pt)*Math.sin(y),cam.dist*Math.sin(pt)]);
+ const fw=V3.unit(V3.sub(tgt,eye));let rt=V3.cross(fw,[0,0,1]);if(Math.hypot(...rt)<1e-3)rt=[0,1,0];rt=V3.unit(rt);const upv=V3.cross(rt,fw);
+ const f=Math.min(W,H)*1.35;
+ const proj=p=>{const d=V3.sub(R(p),eye),z=V3.dot(d,fw);return [W/2+f*V3.dot(d,rt)/z,H/2-f*V3.dot(d,upv)/z,z]};
+ // Boden-Raster
+ x.lineWidth=1;x.strokeStyle=col.line;
+ for(let i=-6;i<=10;i++){const a=proj([i*150,-900,fr.floor]),b=proj([i*150,900,fr.floor]);if(a[2]>50&&b[2]>50){x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()}}
+ for(let j=-6;j<=6;j++){const a=proj([-900,j*150,fr.floor]),b=proj([1500,j*150,fr.floor]);if(a[2]>50&&b[2]>50){x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()}}
+ // Tisch oder Wand + Regal
+ if(tbl){const pl=sc.platform;tiles(items,[60,0,-165],880,700,30,'#c9b79c',4);[[-350,-320],[-350,320],[470,-320],[470,320]].forEach(([a,b])=>beam(items,[a,b,-180],[a,b,fr.floor],30,30,'#a8987f'));
+  tiles(items,[(pl.x[0]+pl.x[1])/2,0,(pl.top+sc.floor)/2],pl.x[1]-pl.x[0],pl.y[1]-pl.y[0],pl.top-sc.floor,'#9d8c74',5)}
+ else{beam(items,[-25,0,140],[-25,0,sc.floor],30,300,col.wall,{side:[0,1,0]});const sh=sc.shelf;cube(items,[(sh.x[0]+sh.x[1])/2,0,sh.top-6],sh.x[1]-sh.x[0],sh.y[1]-sh.y[0],12,'#b9bdb3')}
+ // Arbeitsbereich (Drahtrahmen)
+ wsSegments(S.mount).forEach(([a,b])=>line3(items,a,b,col.cord,1,[5,5],.5));
+ // Blöcke
+ if(S.blocks)blocks.forEach(b=>cube(items,b.p,BLOCK,BLOCK,BLOCK,css(b.c)));
+ // Roboter
+ robot3d(items,cmd,col.arm,1);
+ const gp=worldPoints(target,S.mount);for(let i=0;i<3;i++)line3(items,gp[i],gp[i+1],col.ghost,2,null,.9);
+ const tp=membraneToTarget(eff,S.mount,S);[[18,0,0],[0,18,0],[0,0,18]].forEach(o=>line3(items,V3.sub(tp,o),V3.add(tp,o),targetOk?col.cord:col.lock,2));
+ // Membran-Installation
+ if(fr.curved)curvedMembrane3d(items,fr,col);else membrane3d(items,fr,col);
+ // Zeichnen: von hinten nach vorne
+ const light=V3.unit([.45,.25,.85]);
+ const prepared=[];
+ for(const it of items){
+  const pts=(it.poly||it.line).map(proj);if(pts.some(p=>p[2]<40))continue;
+  const depth=pts.reduce((s,p)=>s+p[2],0)/pts.length;prepared.push({it,pts,depth});
+ }
+ prepared.sort((a,b)=>b.depth-a.depth);
+ for(const {it,pts} of prepared){
+  x.globalAlpha=it.alpha??1;
+  if(it.poly){
+   const P=it.poly.map(R),n=V3.unit(V3.cross(V3.sub(P[1],P[0]),V3.sub(P[2],P[0])));
+   const k=.55+.45*Math.abs(V3.dot(n,light)),[r,g,b]=hexRgb(it.color);
+   x.fillStyle=`rgb(${r*k|0},${g*k|0},${b*k|0})`;x.beginPath();x.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)x.lineTo(pts[i][0],pts[i][1]);x.closePath();x.fill();
+   if(it.edge){x.strokeStyle=it.edge;x.lineWidth=.6;x.stroke()}
+  }else{x.strokeStyle=it.color;x.lineWidth=it.width;x.setLineDash(it.dash||[]);x.beginPath();x.moveTo(pts[0][0],pts[0][1]);x.lineTo(pts[1][0],pts[1][1]);x.stroke();x.setLineDash([])}
+ }
+ x.globalAlpha=1;
+ // Beschriftung
+ const label=(p,t)=>{const q=proj(p);if(q[2]>40){x.fillStyle=col.muted;x.font='12px Arial';x.textAlign='center';x.fillText(t,q[0],q[1])}};
+ label([0,0,tbl?230:180],'Roboter');if(tbl)label([-200,-200,20],'Plattform');if(fr.curved){label([fr.fx+fr.curved.R,0,fr.cz+fr.hh+60],'Membran (gebogen)');label([fr.fx,0,fr.cz+520],'Besucherin')}else{label([fr.fx,0,fr.cz+fr.hh+60],'Membran');label([fr.fx+(fr.fx<0?-420:420),0,fr.cz-60],'Besucherin')}
+}
+function robot3d(items,v,color){
+ const p=worldPoints(v,S.mount),t=angle(0,v[0])*RAD,hinge=toWorld([-Math.sin(t),Math.cos(t),0],S.mount),upA=toWorld([0,0,1],S.mount);
+ const dark=color;
+ beam(items,V3.sub(p[0],V3.mul(upA,45)),V3.add(p[0],V3.mul(upA,10)),90,90,'#3a3a3a');                 // Sockel mit Basis-Servo
+ beam(items,V3.sub(p[0],V3.mul(hinge,32)),V3.add(p[0],V3.mul(hinge,32)),46,46,'#555555',{side:upA}); // Schulter
+ beam(items,p[0],p[1],34,28,dark,{side:hinge});
+ beam(items,V3.sub(p[1],V3.mul(hinge,28)),V3.add(p[1],V3.mul(hinge,28)),40,40,'#555555',{side:V3.sub(p[1],p[0])}); // Ellbogen
+ beam(items,p[1],p[2],30,26,dark,{side:hinge});
+ beam(items,V3.sub(p[2],V3.mul(hinge,24)),V3.add(p[2],V3.mul(hinge,24)),34,34,'#555555',{side:V3.sub(p[2],p[1])}); // Handgelenk
+ const d=V3.unit(V3.sub(p[3],p[2])),body=V3.add(p[2],V3.mul(d,L3*.55));
+ beam(items,p[2],body,40,30,dark,{side:hinge}); // Greiferkörper mit Rotation
+ const roll=angle(4,v[4])*RAD,nrm=V3.unit(V3.cross(d,hinge)),spread=V3.add(V3.mul(hinge,Math.cos(roll)),V3.mul(nrm,Math.sin(roll)));
+ const open=clamp((v[5]-GRIP_CLOSED)/(GRIP_OPEN-GRIP_CLOSED),0,1),gap=8+open*30;
+ [1,-1].forEach(sg=>{const a=V3.add(body,V3.mul(spread,sg*gap*.45)),b=V3.add(p[3],V3.mul(spread,sg*gap/2));beam(items,a,b,8,20,'#222222',{side:spread})});
+}
+function membrane3d(items,fr,col){
+ const {fx,cz,hw,hh,floor}=fr,FW=hw*FAB/ .9,FH=hh*FAB/.9; // Tuch etwas kleiner als der Rahmen
+ const fwid=Math.min(FW,hw-40),fhei=Math.min(FH,hh-40);
+ // Rahmen und Ständer
+ const P=(yy,zz,xx=fx)=>[xx,yy,zz];
+ [[P(-hw,cz-hh),P(hw,cz-hh)],[P(-hw,cz+hh),P(hw,cz+hh)],[P(-hw,cz-hh),P(-hw,cz+hh)],[P(hw,cz-hh),P(hw,cz+hh)]].forEach(([a,b])=>beam(items,a,b,26,26,'#8f8f88',{side:[1,0,0]}));
+ [-hw,hw].forEach(yy=>{beam(items,P(yy,cz-hh),P(yy,floor),24,24,'#8f8f88');beam(items,P(yy,floor+10,fx-160),P(yy,floor+10,fx+160),30,20,'#8f8f88')});
+ // Tuch als verformtes Gitter: Delle dort, wo die Hand drückt (Richtung Roboter)
+ // sd: Richtung vom Menschen zum Roboter (+1, wenn der Mensch hinter dem Roboter steht)
+ const sd=fx<0?1:-1,N=14,sig=.32,dent=eff.d*140;
+ const vert=(s,t)=>{const g=Math.exp(-((s-eff.u)**2+(t-eff.v)**2)/(2*sig*sig));return [fx+sd*dent*g,sd*s*fwid,cz+t*fhei]};
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const s0=-1+2*i/N,s1=-1+2*(i+1)/N,t0=-1+2*j/N,t1=-1+2*(j+1)/N;
+  items.push({poly:[vert(s0,t0),vert(s1,t0),vert(s1,t1),vert(s0,t1)],color:col.fab,alpha:.62,edge:col.fabE})}
+ // Schnüre mit Wägezellen
+ const f=realMem?realForces:cordForces(eff),fmax=Math.max(40,...f);
+ CORDS.forEach(([,cx,cy],i)=>{const a=P(sd*cx*(hw-14),cz+cy*(hh-14)),b=vert(cx,cy);
+  line3(items,a,b,locks[i]?col.lock:col.cord,1+3*f[i]/fmax,null,.5+.5*f[i]/fmax);cube(items,a,22,22,22,locks[i]?col.lock:'#b9bdb3')});
+ // Hand und Unterarm der Besucherin (auf der Besucherseite des Tuchs)
+ const hp=vert(eff.u,eff.v),hand=[hp[0]-sd*28,hp[1],hp[2]],g=gripKey||gripBtn||realGrip;
+ cube(items,hand,46,g?44:56,g?46:60,'#c8a88f');
+ beam(items,[hand[0]-sd*20,hand[1],hand[2]-6],[hand[0]-sd*380,hand[1]+sd*60,hand[2]-170],48,48,'#b89a82');
+ if(!targetOk){const ip=[fx+sd*input.d*140-sd*28,sd*input.u*fwid,cz+input.v*fhei];line3(items,hand,ip,col.lock,2,[4,4])}
+}
+
+// Gebogenes Tuch: Kreisbogen um die Besucherin. Sie steht in der Mitte und drückt nach außen.
+// Ein Punkt auf dem Bogen (Winkel) entspricht der Drehrichtung des Roboters, Drücken nach außen = weiter greifen.
+function curvedMembrane3d(items,fr,col){
+ const {fx,cz,hh,floor}=fr,{R,arc}=fr.curved,C=[fx,0,0],fhei=hh-40,FA=arc*.9; // Tuchbogen etwas schmaler als der Rahmen
+ const at=(a,r,z)=>[C[0]+r*Math.cos(a*RAD),C[1]+r*Math.sin(a*RAD),z];
+ // Rahmen: obere und untere Bogenleiste, Pfosten an den Enden und in der Mitte, Fußplatte
+ const n=12;
+ for(const z of [cz-hh,cz+hh])for(let i=0;i<n;i++){const a0=lerp(-arc,arc,i/n),a1=lerp(-arc,arc,(i+1)/n);beam(items,at(a0,R,z),at(a1,R,z),24,24,'#8f8f88')}
+ for(const a of [-arc,0,arc]){beam(items,at(a,R,cz+hh),at(a,R,floor),24,24,'#8f8f88')}
+ for(let i=0;i<n;i++){const a0=lerp(-arc,arc,i/n),a1=lerp(-arc,arc,(i+1)/n);beam(items,at(a0,R,floor+8),at(a1,R,floor+8),40,16,'#8f8f88')}
+ // Tuch mit Delle nach außen
+ const N=16,sig=.3,dent=eff.d*140;
+ const vert=(s,t)=>{const g=Math.exp(-((s-eff.u)**2+(t-eff.v)**2)/(2*sig*sig));return at(s*FA,R+dent*g,cz+t*fhei)};
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const s0=-1+2*i/N,s1=-1+2*(i+1)/N,t0=-1+2*j/N,t1=-1+2*(j+1)/N;
+  items.push({poly:[vert(s0,t0),vert(s1,t0),vert(s1,t1),vert(s0,t1)],color:col.fab,alpha:.62,edge:col.fabE})}
+ // Schnüre: oben/unten senkrecht zur Bogenleiste, an den Seiten zum Endpfosten
+ const f=realMem?realForces:cordForces(eff),fmax=Math.max(40,...f);
+ CORDS.forEach(([,cx,cy],i)=>{const a=at(cx*(cy===0?arc:FA*.95),R,cz+cy*(cy===0?0:hh-14)),b=vert(cx,cy);
+  line3(items,a,b,locks[i]?col.lock:col.cord,1+3*f[i]/fmax,null,.5+.5*f[i]/fmax);cube(items,a,22,22,22,locks[i]?col.lock:'#b9bdb3')});
+ // Besucherin in der Mitte: Körper, Kopf, Arm zur Hand
+ const hp=vert(eff.u,eff.v),g=gripKey||gripBtn||realGrip,toC=V3.unit(V3.sub([C[0],C[1],hp[2]],hp)),hand=V3.add(hp,V3.mul(toC,28));
+ beam(items,[C[0]-60,0,floor],[C[0]-60,0,cz+120],180,110,'#b5b1a8',{side:[0,1,0]});
+ cube(items,[C[0]-60,0,cz+250],120,120,130,'#c8a88f');
+ const shoulder=[C[0]-40,C[1]+(eff.u>=0?90:-90),cz+90];
+ beam(items,shoulder,hand,46,46,'#b89a82');
+ cube(items,hand,46,g?44:56,g?46:60,'#c8a88f');
+ if(!targetOk){const ip=at(input.u*FA,R+input.d*140-28,cz+input.v*fhei);line3(items,hand,ip,col.lock,2,[4,4])}
+}
+
+// ---------- Hauptschleife ----------
+let lastT=performance.now(),lastSentLocks='',lastSentVib='';
+function frame(t){
+ const dt=Math.min(.05,(t-lastT)/1000);lastT=t;
+ if(!realMem&&depthKeys.size){const sl=$('base-depth'),dir=(depthKeys.has('w')?1:0)-(depthKeys.has('s')?1:0);sl.value=clamp(+sl.value+dir*dt*60,0,100)}
+ if(!realMem){pressDepth=pressing?Math.min(1,pressDepth+dt*.9):Math.max(0,pressDepth-dt*2.2);input.d=Math.max(pressDepth,$('base-depth').value/100)}
+ updateTarget();simulateGrip();stepRobot(dt);
+ drawMembrane();draw3d();if($('side').offsetWidth){view($('side'),'side');view($('front'),'front')}panels();
+ sendRobot();sendMembraneFeedback();
+ requestAnimationFrame(frame);
+}
+
+// ---------- Web Serial: Roboter ----------
+let rob={port:null,writer:null,reader:null},connected=false,synced=false,live=false,pending=null,lastSent=null,lastSendTime=0;
+function setLive(on){live=on&&connected&&synced;$('live').textContent=live?'Live senden: an':'Live senden: aus';$('live').classList.toggle('on',live);$('live').setAttribute('aria-pressed',live);if(live){tipCmd=null;msg('Live: Der Arm folgt jetzt der Membran, mit Tempolimit.')}}
+$('live').onclick=()=>{if(!synced){msg('Zuerst muss die Roboterposition gelesen sein.');return}if(paused)stopAll();setLive(!live)};
+async function robWrite(c){if(!rob.writer)return;pending={c,t:performance.now()};log('> '+c);try{await rob.writer.write(new TextEncoder().encode(c+'\n'))}catch(e){msg('USB-Schreibfehler: '+e.message);pending=null}}
+function sendRobot(){
+ if(!connected)return;
+ const now=performance.now();
+ if(pending&&now-pending.t>800)pending=null;
+ if(!synced){if(!pending&&now-lastSendTime>1000){lastSendTime=now;robWrite('?')}return}
+ if(!live||paused||pending||now-lastSendTime<90)return;
+ if(lastSent&&cmd.every((v,i)=>Math.abs(v-lastSent[i])<3))return;
+ lastSent=[...cmd];lastSendTime=now;robWrite('A '+cmd.join(' '));
+}
+function robLine(l){
+ if(!l)return;log('< '+l);
+ if(l.startsWith('POS')){const v=l.split(/\s+/).slice(1).map(Number);if(v.length===6&&v.every(Number.isFinite)){if(!synced){cmd=[...v];target=[...v];lastSent=[...v];tipCmd=null;synced=true;$('live').disabled=false;$('rob-status').textContent='Roboter: Position übernommen';msg('Position übernommen. „Live senden“ einschalten, um den Arm mit der Membran zu bewegen.')}}pending=null}
+ else if(l.startsWith('ERR'))pending=null;
+ if(/Force-Überlast|Force-Uberlast|Ueberlast/i.test(l)){overloadUntil=performance.now()+1200;vibUntil=performance.now()+400;if(/\[S6\]/.test(l))realHoldUntil=performance.now()+1500}
+}
+let realHoldUntil=0;Object.defineProperty(window,'realHold',{get:()=>performance.now()<realHoldUntil});
+async function readLoop(r,cb){let buf='';const dec=new TextDecoder();try{while(true){const {value,done}=await r.read();if(done)break;buf+=dec.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();ls.forEach(x=>cb(x.trim()));if(buf.length>4096)buf=''}}catch(e){log(e.message)}}
+$('rob-connect').onclick=async()=>{
+ if(connected){await robDisconnect();return}
+ if(!navigator.serial){msg('USB braucht Chrome oder Edge. Die Simulation läuft trotzdem.');return}
+ try{rob.port=await navigator.serial.requestPort();await rob.port.open({baudRate:115200});rob.writer=rob.port.writable.getWriter();rob.reader=rob.port.readable.getReader();
+  connected=true;synced=false;setLive(false);$('rob-status').classList.add('live');$('rob-status').textContent='Roboter: lese Position …';$('rob-connect').textContent='Trennen';held=null;
+  msg('Verbunden. Die Position wird gelesen; bis dahin ist Bewegung gesperrt.');
+  readLoop(rob.reader,robLine).then(()=>{if(connected)robDisconnect()});
+ }catch(e){msg('Verbindung fehlgeschlagen: '+e.message)}
+};
+async function robDisconnect(){connected=false;synced=false;setLive(false);try{await rob.reader?.cancel();rob.reader?.releaseLock();rob.writer?.releaseLock();await rob.port?.close()}catch(e){}rob={port:null,writer:null,reader:null};$('rob-status').classList.remove('live');$('rob-status').textContent='Roboter: Vorschau';$('rob-connect').textContent='Roboter verbinden ↗';$('live').disabled=true;msg('Getrennt. Simulation aktiv.')}
+
+// ---------- Web Serial: Membran-Arduino ----------
+let memPort=null,memWriter=null,memReader=null,realMem=false,realForces=new Array(8).fill(0),realGrip=false,tare=new Array(8).fill(0),fullScale=600,rawF=new Array(8).fill(0);
+function memLine(l){
+ const p=l.split(/\s+/);if(p[0]!=='F'||p.length<10)return;const v=p.slice(1,10).map(Number);if(!v.every(Number.isFinite))return;
+ rawF=v.slice(0,8);realGrip=v[8]>400;
+ const e=rawF.map((f,i)=>Math.max(0,f-tare[i])),sum=e.reduce((a,b)=>a+b,0);realForces=rawF.map((f,i)=>8+Math.max(0,f-tare[i]));
+ if(sum<fullScale*.03){input.d=0;return}
+ const gain=1.9;input.u=clamp(e.reduce((s,x,i)=>s+x*CORDS[i][1],0)/sum*gain,-1,1);input.v=clamp(e.reduce((s,x,i)=>s+x*CORDS[i][2],0)/sum*gain,-1,1);input.d=clamp(sum/fullScale,0,1);
+}
+$('mem-connect').onclick=async()=>{
+ if(realMem){realMem=false;try{await memReader?.cancel();memReader?.releaseLock();memWriter?.releaseLock();await memPort?.close()}catch(e){}$('mem-status').classList.remove('live');$('mem-status').textContent='Membran: Simulation';$('mem-connect').textContent='Membran-Arduino ↗';$('tare').disabled=$('calib').disabled=true;return}
+ if(!navigator.serial){msg('USB braucht Chrome oder Edge.');return}
+ try{memPort=await navigator.serial.requestPort();await memPort.open({baudRate:115200});memWriter=memPort.writable.getWriter();memReader=memPort.readable.getReader();realMem=true;
+  $('mem-status').classList.add('live');$('mem-status').textContent='Membran: Arduino';$('mem-connect').textContent='Membran trennen';$('tare').disabled=$('calib').disabled=false;
+  setTimeout(()=>{tare=[...rawF];log('Membran genullt')},800);readLoop(memReader,memLine);
+ }catch(e){msg('Membran-Verbindung fehlgeschlagen: '+e.message)}
+};
+$('tare').onclick=()=>{tare=[...rawF];log('Membran genullt')};
+$('calib').onclick=()=>{const s=rawF.reduce((a,f,i)=>a+Math.max(0,f-tare[i]),0);if(s>20){fullScale=s;log('Volle Tiefe = '+Math.round(s))}else msg('Zum Kalibrieren tief ins Tuch drücken und dann klicken.')};
+async function sendMembraneFeedback(){
+ if(!realMem||!memWriter)return;const L='L '+locks.map(b=>b?1:0).join(''),V='V '+(performance.now()<vibUntil?1:0);
+ try{if(L!==lastSentLocks){lastSentLocks=L;await memWriter.write(new TextEncoder().encode(L+'\n'))}if(V!==lastSentVib){lastSentVib=V;await memWriter.write(new TextEncoder().encode(V+'\n'))}}catch(e){}
+}
+
+// ---------- Farbmodus ----------
+(()=>{const b=$('theme'),sync=()=>{const d=document.documentElement.dataset.theme==='dark';b.textContent=d?'☀':'☾'};b.onclick=()=>{const t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('robot-theme',t)}catch(e){}sync()};sync()})();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
